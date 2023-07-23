@@ -45,4 +45,34 @@ public class DoctorService {
         }
         return doctors;
     }
+
+    //Delete Doctor
+    public void deleteDoctor(Long doctorId) {
+        // Check if the doctor exists in the database
+        if (!doctorsRepository.existsById(doctorId)) {
+            throw new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found.");
+        }
+        // Delete the doctor from the database
+        doctorsRepository.deleteById(doctorId);
+    }
+
+    //Update doctors
+    public MessageResponse updateDoctor(Long doctorId, DoctorsRequest doctorsRequest) {
+        // Check if the doctor with the given ID exists in the database
+        Doctors existingDoctor = doctorsRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found."));
+
+        // Update the doctor's fields with the new data from the request
+        existingDoctor.setDoctorName(doctorsRequest.getDoctorName());
+        existingDoctor.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
+        existingDoctor.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
+        existingDoctor.setWorkingHours(doctorsRequest.getWorkingHours());
+        existingDoctor.setContactInformation(new ArrayList<>(doctorsRequest.getContactInformation()));
+        existingDoctor.setProfessionalExperience(new ArrayList<>(doctorsRequest.getProfessionalExperience()));
+
+        // Save the updated doctor to the database
+        doctorsRepository.save(existingDoctor);
+
+        return new MessageResponse("Doctor updated successfully.");
+    }
 }

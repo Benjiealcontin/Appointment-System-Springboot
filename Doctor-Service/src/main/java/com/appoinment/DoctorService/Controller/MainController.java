@@ -1,8 +1,11 @@
 package com.appoinment.DoctorService.Controller;
 
 import com.appoinment.DoctorService.Entity.Doctors;
+import com.appoinment.DoctorService.Exception.AddDoctorException;
+import com.appoinment.DoctorService.Exception.DoctorsNotFoundException;
 import com.appoinment.DoctorService.Repository.DoctorsRepository;
 import com.appoinment.DoctorService.Request.DoctorsRequest;
+import com.appoinment.DoctorService.Response.MessageResponse;
 import com.appoinment.DoctorService.Service.DoctorService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +39,7 @@ public class MainController {
             }
             return new ResponseEntity<>(doctorService.addDoctor(doctorsRequest), HttpStatus.OK);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
 
@@ -48,6 +51,32 @@ public class MainController {
             return new ResponseEntity<>(doctors, HttpStatus.OK);
         }catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    //Delete Doctors
+    @DeleteMapping("/delete/{doctorId}")
+    public ResponseEntity<?> deleteDoctor(@PathVariable Long doctorId) {
+        try {
+            doctorService.deleteDoctor(doctorId);
+            return ResponseEntity.ok(new MessageResponse("Doctor deleted successfully."));
+        } catch (DoctorsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor with ID " + doctorId + " not found.");
+        } catch (AddDoctorException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Update Doctor
+    @PutMapping("/update/{doctorId}")
+    public ResponseEntity<MessageResponse> updateDoctor(@PathVariable Long doctorId, @RequestBody DoctorsRequest doctorsRequest) {
+        try {
+            MessageResponse response = doctorService.updateDoctor(doctorId, doctorsRequest);
+            return ResponseEntity.ok(response);
+        } catch (DoctorsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Doctor with ID " + doctorId + " not found."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
         }
     }
 }
