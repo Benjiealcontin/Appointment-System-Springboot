@@ -27,7 +27,7 @@ public class MainController {
 
     //Add doctor
     @PostMapping("/add")
-    public ResponseEntity<?> createStudent(@Valid @RequestBody DoctorsRequest doctorsRequest, BindingResult result) {
+    public ResponseEntity<?> addDoctor(@Valid @RequestBody DoctorsRequest doctorsRequest, BindingResult result) {
         try {
             if (result.hasErrors()) {
                 // Handle validation errors and return appropriate response
@@ -36,6 +36,10 @@ public class MainController {
                     errorMessage.append(error.getDefaultMessage()).append("; ");
                 }
                 return ResponseEntity.badRequest().body(errorMessage.toString());
+            }
+            // Check if the doctor already exists
+            if (doctorService.isDoctorExists(doctorsRequest)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Doctor already exists.");
             }
             return new ResponseEntity<>(doctorService.addDoctor(doctorsRequest), HttpStatus.OK);
         } catch (Exception e) {
@@ -51,6 +55,19 @@ public class MainController {
             return new ResponseEntity<>(doctors, HttpStatus.OK);
         }catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    //FindById
+    @GetMapping("/{doctorId}")
+    public ResponseEntity<?> getDoctorById(@PathVariable Long doctorId) {
+        try {
+            Doctors doctor = doctorService.getDoctorById(doctorId);
+            return ResponseEntity.ok(doctor);
+        } catch (DoctorsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse("Doctor with ID " + doctorId + " not found."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
         }
     }
 

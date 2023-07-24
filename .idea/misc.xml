@@ -10,6 +10,8 @@
         <option value="$PROJECT_DIR$/Discovery-Service/pom.xml" />
         <option value="$PROJECT_DIR$/Dentist-Service/pom.xml" />
         <option value="$PROJECT_DIR$/Doctor-Service/pom.xml" />
+        <option value="$PROJECT_DIR$/Appointment-Service/pom.xml" />
+        <option value="$PROJECT_DIR$/Available-Service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

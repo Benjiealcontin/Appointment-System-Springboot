@@ -13,6 +13,8 @@
         <module>Api-Gateway</module>
         <module>Discovery-Service</module>
         <module>Doctor-Service</module>
+        <module>Appointment-Service</module>
+        <module>Available-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>20</maven.compiler.source>
