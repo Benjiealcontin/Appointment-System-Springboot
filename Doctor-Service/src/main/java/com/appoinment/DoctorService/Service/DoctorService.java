@@ -8,13 +8,7 @@ import com.appoinment.DoctorService.Repository.DoctorsRepository;
 import com.appoinment.DoctorService.Request.DoctorsRequest;
 import com.appoinment.DoctorService.Response.MessageResponse;
 
-import com.appointment.AvailableService.Request.AvailableRequest;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -22,17 +16,18 @@ import java.util.Optional;
 @Service
 public class DoctorService {
 
-    @Autowired
-    private DoctorsRepository doctorsRepository;
+    private final DoctorsRepository doctorsRepository;
 
-    @Autowired
-    private WebClient.Builder webClientBuilder;
+    public DoctorService(DoctorsRepository doctorsRepository) {
+        this.doctorsRepository = doctorsRepository;
+    }
 
     //Add doctor
     public MessageResponse addDoctor(DoctorsRequest doctorsRequest) {
         Doctors doctors = new Doctors();
         doctors.setDoctorName(doctorsRequest.getDoctorName());
         doctors.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
+        doctors.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
         doctors.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
         doctors.setContactInformation(new ArrayList<>(doctorsRequest.getContactInformation()));
         doctors.setProfessionalExperience(new ArrayList<>(doctorsRequest.getProfessionalExperience()));
@@ -40,30 +35,6 @@ public class DoctorService {
         try {
             // Save the doctor in the local database
             doctorsRepository.save(doctors);
-
-            // Prepare the data to send to the endpoint
-            String doctorName = doctorsRequest.getDoctorName();
-            String workingHours = doctorsRequest.getWorkingHours();
-
-            // Create the request body to be sent
-            AvailableRequest availableRequest = new AvailableRequest();
-            availableRequest.setDoctorName(doctorName);
-            availableRequest.setWorkingHours(workingHours);
-
-            // Send the data to the endpoint
-            WebClient webClient = webClientBuilder.baseUrl("http://available-service").build();
-
-            // Make the POST request to the endpoint and receive the response
-            webClient.post()
-                    .uri("/api/available/add")
-                    .body(Mono.just(availableRequest), AvailableRequest.class)
-                    .exchange()
-                    .doOnError(WebClientResponseException.class, ex -> {
-                        // Handle WebClient response error
-                        throw new AddDoctorException("Error occurred while adding the doctor: " + ex.getRawStatusCode() + " " + ex.getStatusText(), ex);
-                    })
-                    .block(); // Blocking call to wait for the response
-
             return new MessageResponse("Doctor Added Successfully");
         } catch (Exception e) {
             throw new AddDoctorException("Error occurred while adding the doctor: " + e.getMessage(), e);
@@ -85,14 +56,27 @@ public class DoctorService {
         return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found."));
     }
 
+    //FindByDoctorName
+    public Doctors getDoctorByName(String doctorName){
+        Optional<Doctors> doctorOptional = doctorsRepository.findByDoctorName(doctorName);
+        return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Doctor name " + doctorName + " not found."));
+    }
+
+    //FindBySpecialization
+    public Doctors getDoctorBySpecialization(String doctorSpecialization){
+        Optional<Doctors> doctorOptional = doctorsRepository.findBySpecializations(doctorSpecialization);
+        return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Specialization " + doctorSpecialization + " not found."));
+    }
+
     //Delete Doctor
-    public void deleteDoctor(Long doctorId) {
+    public MessageResponse deleteDoctor(Long doctorId) {
         // Check if the doctor exists in the database
         if (!doctorsRepository.existsById(doctorId)) {
             throw new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found.");
         }
         // Delete the doctor from the database
         doctorsRepository.deleteById(doctorId);
+        return new MessageResponse("Delete Successfully!");
     }
 
     //Update doctors
@@ -104,6 +88,7 @@ public class DoctorService {
         // Update the doctor's fields with the new data from the request
         existingDoctor.setDoctorName(doctorsRequest.getDoctorName());
         existingDoctor.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
+        existingDoctor.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
         existingDoctor.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
         existingDoctor.setContactInformation(new ArrayList<>(doctorsRequest.getContactInformation()));
         existingDoctor.setProfessionalExperience(new ArrayList<>(doctorsRequest.getProfessionalExperience()));
@@ -112,10 +97,5 @@ public class DoctorService {
         doctorsRepository.save(existingDoctor);
 
         return new MessageResponse("Doctor updated successfully.");
-    }
-
-    //Check if the doctor is Exist
-    public boolean isDoctorExists(DoctorsRequest doctorsRequest) {
-        return doctorsRepository.existsByDoctorName(doctorsRequest.getDoctorName());
     }
 }

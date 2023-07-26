@@ -19,13 +19,12 @@ public class Doctors {
 
     @ElementCollection
     private List<String> specializations;
-
+    @ElementCollection
+    private List<String> workingHours;
     @ElementCollection
     private List<String> qualifications;
-
     @ElementCollection
     private List<String> contactInformation;
-
     @ElementCollection
     private List<String> professionalExperience;
 }

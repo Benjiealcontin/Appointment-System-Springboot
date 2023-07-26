@@ -14,8 +14,8 @@ public class DoctorsRequest {
     @NotEmpty(message = "Specializations list must not be empty")
     private List<String> specializations;
 
-    @NotBlank(message = "Working hours must not be blank")
-    private String workingHours;
+    @NotEmpty(message = "Working Hours must not be empty")
+    private List<String> workingHours;
 
     @NotEmpty(message = "Qualifications list must not be empty")
     private List<String> qualifications;

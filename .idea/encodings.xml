@@ -4,11 +4,23 @@
     <file url="file://$PROJECT_DIR$/Api-Gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Appointment-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Appointment-Service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Approve-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Approve-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Available-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Available-Service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Cancellation-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Cancellation-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Dentist-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Discovery-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Doctor-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Keycloak-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Keycloak-Service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notification-Service/Producer-Kafka/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notification-Service/Producer-Kafka/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notification-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notification-Service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notifications-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Notifications-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/User-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
