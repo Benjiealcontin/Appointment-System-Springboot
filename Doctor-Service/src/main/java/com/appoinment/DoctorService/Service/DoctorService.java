@@ -11,6 +11,7 @@ import com.appoinment.DoctorService.Response.MessageResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -41,10 +42,15 @@ public class DoctorService {
         }
     }
 
+    //Check if the doctor is Exist
+    public boolean checkIfDoctorExists(String doctorName) {
+        return doctorsRepository.existsByDoctorName(doctorName);
+    }
+
     //FindAll
-    public Iterable<Doctors> getAllDoctors() {
-        Iterable<Doctors> doctors = doctorsRepository.findAll();
-        if (!doctors.iterator().hasNext()) {
+    public List<Doctors> getAllDoctors() {
+        List<Doctors> doctors = doctorsRepository.findAll();
+        if (doctors.isEmpty()) {
             throw new DoctorsNotFoundException("No doctors found.");
         }
         return doctors;
@@ -57,30 +63,29 @@ public class DoctorService {
     }
 
     //FindByDoctorName
-    public Doctors getDoctorByName(String doctorName){
+    public Doctors getDoctorByName(String doctorName) {
         Optional<Doctors> doctorOptional = doctorsRepository.findByDoctorName(doctorName);
         return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Doctor name " + doctorName + " not found."));
     }
 
     //FindBySpecialization
-    public Doctors getDoctorBySpecialization(String doctorSpecialization){
+    public Doctors getDoctorsBySpecialization(String doctorSpecialization){
         Optional<Doctors> doctorOptional = doctorsRepository.findBySpecializations(doctorSpecialization);
         return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Specialization " + doctorSpecialization + " not found."));
     }
 
     //Delete Doctor
-    public MessageResponse deleteDoctor(Long doctorId) {
+    public void deleteDoctor(Long doctorId) {
         // Check if the doctor exists in the database
         if (!doctorsRepository.existsById(doctorId)) {
             throw new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found.");
         }
         // Delete the doctor from the database
         doctorsRepository.deleteById(doctorId);
-        return new MessageResponse("Delete Successfully!");
     }
 
     //Update doctors
-    public MessageResponse updateDoctor(Long doctorId, DoctorsRequest doctorsRequest) {
+    public void updateDoctor(Long doctorId, DoctorsRequest doctorsRequest) {
         // Check if the doctor with the given ID exists in the database
         Doctors existingDoctor = doctorsRepository.findById(doctorId)
                 .orElseThrow(() -> new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found."));
@@ -95,7 +100,5 @@ public class DoctorService {
 
         // Save the updated doctor to the database
         doctorsRepository.save(existingDoctor);
-
-        return new MessageResponse("Doctor updated successfully.");
     }
 }

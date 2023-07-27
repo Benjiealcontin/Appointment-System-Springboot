@@ -18,5 +18,6 @@ public class ApproveRequest {
     private String appointmentType;
     private String appointmentStatus;
     private LocalDate dateField;
+    private String transactionId;
     private String timeField;
 }

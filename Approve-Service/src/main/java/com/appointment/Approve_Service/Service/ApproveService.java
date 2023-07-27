@@ -9,6 +9,7 @@ import com.appointment.Approve_Service.Exception.WebClientException;
 import com.appointment.Approve_Service.Repository.ApproveRepository;
 import com.appointment.Approve_Service.Request.ApproveRequest;
 import com.appointment.Approve_Service.Response.MessageResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -32,8 +34,14 @@ public class ApproveService {
         this.webClientBuilder = webClientBuilder;
     }
 
+    /*
+   TODO:
+   - Add Circuit Breaker
+   - Add time limiter
+    */
+
     //Approve Appointment
-    public MessageResponse approveAppointment(String transactionId,String token){
+    public MessageResponse approveAppointment(String transactionId,String token) throws JsonProcessingException {
        try{
            //Get the data from Appointment
            Appointment appointment = webClientBuilder.build()
@@ -55,7 +63,7 @@ public class ApproveService {
                approve.setPatientId(appointment.getPatientId());
                approve.setDateField(appointment.getDateField());
                approve.setTimeField(appointment.getTimeField());
-
+               approve.setTransactionId(appointment.getTransactionId());
                approveRepository.save(approve);
 
                //Delete after save the data from Appointment
@@ -75,53 +83,44 @@ public class ApproveService {
        } catch (WebClientResponseException.NotFound ex) {
            // Parse the error response to get the message
            String responseBody = ex.getResponseBodyAsString();
-           String errorMessage = parseErrorMessage(responseBody);
+           ObjectMapper objectMapper = new ObjectMapper();
+           JsonNode jsonNode = objectMapper.readTree(responseBody);
 
            // Rethrow the AppointmentNotFoundException from the ApprovalService
-           throw new AppointmentNotFoundException(errorMessage);
+           throw new AppointmentNotFoundException(jsonNode.get("message").asText());
        } catch (WebClientResponseException.ServiceUnavailable ex) {
            throw new WebClientException("Error occurred while calling the external service: ","Service Unavailable from Appointment Service");
        }catch (Exception e){
            throw new ApprovalException("Error occurred while approving the appointment.", e.getMessage());
        }
     }
-    private String parseErrorMessage(String responseBody) {
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
-            return jsonNode.get("message").asText();
-        } catch (Exception e) {
-            // If there's an error while parsing, return the original response body
-            return responseBody;
-        }
-    }
 
     //FindAll Approve
-    public Iterable<Approve> getAllApproveAppointment(){
-        Iterable<Approve> approve = approveRepository.findAll();
-        if (!approve.iterator().hasNext()) {
-            throw new ApproveNotFoundException("No approve found.");
+    public List<Approve> getAllApproveAppointments() {
+        List<Approve> approves = approveRepository.findAll();
+        if (approves.isEmpty()) {
+            throw new ApproveNotFoundException("No approves found.");
         }
-        return approve;
+        return approves;
     }
 
     //FindById
-    public Approve getApproveById(Long approveId){
+    public Approve getApproveById(Long approveId) {
         Optional<Approve> approveOptional = approveRepository.findById(approveId);
         return approveOptional.orElseThrow(() -> new ApproveNotFoundException("Approve with ID " + approveId + " not found."));
     }
 
+
     //Delete approve
-    public MessageResponse deleteApproveById(Long approveId){
+    public void deleteApproveById(Long approveId) {
         if (!approveRepository.existsById(approveId)) {
             throw new ApproveNotFoundException("Approve with ID " + approveId + " not found.");
         }
         approveRepository.deleteById(approveId);
-        return new MessageResponse("Delete Successfully");
     }
 
     //Update Approve
-    public MessageResponse updateApproveById(Long approveId, ApproveRequest approveRequest){
+    public void updateApproveById(Long approveId, ApproveRequest approveRequest) {
         Optional<Approve> optionalApprove = approveRepository.findById(approveId);
         if (optionalApprove.isPresent()) {
             Approve approve = optionalApprove.get();
@@ -132,13 +131,11 @@ public class ApproveService {
             approve.setPatientId(approveRequest.getPatientId());
             approve.setDateField(approveRequest.getDateField());
             approve.setTimeField(approveRequest.getTimeField());
+            approve.setTransactionId(approveRequest.getTransactionId());
 
-            approveRepository.save(approve); // Save the updated object back to the database
-
-            return new MessageResponse("Approve Updated Successfully");
+            approveRepository.save(approve);
         } else {
             throw new ApproveNotFoundException("Approve with ID " + approveId + " not found.");
         }
     }
-
 }

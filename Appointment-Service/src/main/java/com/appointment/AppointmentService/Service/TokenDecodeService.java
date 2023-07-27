@@ -1,5 +1,6 @@
 package com.appointment.AppointmentService.Service;
 
+import com.appointment.AppointmentService.Exception.InvalidTokenException;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.stereotype.Service;
@@ -9,13 +10,10 @@ import org.springframework.stereotype.Service;
 public class TokenDecodeService {
 
     public String extractToken(String bearerToken) {
-        // Assuming the Authorization header looks like "Bearer <token>"
-        String[] tokenParts = bearerToken.split(" ");
-        if (tokenParts.length == 2 && "Bearer".equals(tokenParts[0])) {
-            return tokenParts[1];
-        } else {
-            throw new IllegalArgumentException("Invalid Bearer token");
+        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
+            throw new InvalidTokenException("Invalid Bearer token");
         }
+        return bearerToken.substring(7); // Extract token excluding "Bearer "
     }
 
 

@@ -1,9 +1,9 @@
 package com.appoinment.DoctorService.Controller;
 
 
+import com.appoinment.DoctorService.Entity.Doctors;
 import com.appoinment.DoctorService.Exception.AddDoctorException;
 import com.appoinment.DoctorService.Exception.DoctorsNotFoundException;
-import com.appoinment.DoctorService.Repository.DoctorsRepository;
 import com.appoinment.DoctorService.Request.DoctorsRequest;
 import com.appoinment.DoctorService.Response.MessageResponse;
 import com.appoinment.DoctorService.Service.DoctorService;
@@ -14,38 +14,39 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/doctor")
 public class DoctorController {
 
     private final DoctorService doctorService;
 
-    private final DoctorsRepository doctorsRepository;
-    public DoctorController(DoctorService doctorService, DoctorsRepository doctorsRepository) {
+    public DoctorController(DoctorService doctorService) {
         this.doctorService = doctorService;
-        this.doctorsRepository = doctorsRepository;
     }
 
     //Add doctor
     @PostMapping("/add")
     private ResponseEntity<?> addDoctor(@Valid @RequestBody DoctorsRequest doctorsRequest, BindingResult result) {
-        try {
-            //Form Validation
-            if (result.hasErrors()) {
-                StringBuilder errorMessage = new StringBuilder();
-                for (FieldError error : result.getFieldErrors()) {
-                    errorMessage.append(error.getDefaultMessage()).append("; ");
-                }
-                return ResponseEntity.badRequest().body(errorMessage.toString());
+        if (result.hasErrors()) {
+            StringBuilder errorMessage = new StringBuilder();
+            for (FieldError error : result.getFieldErrors()) {
+                errorMessage.append(error.getDefaultMessage()).append("; ");
             }
+            return ResponseEntity.badRequest().body(errorMessage.toString());
+        }
 
-            //Check if Doctor is Exist
-            boolean doctors = doctorsRepository.existsByDoctorName(doctorsRequest.getDoctorName());
-            if (doctors) {
+        try {
+            boolean doctorExists = doctorService.checkIfDoctorExists(doctorsRequest.getDoctorName());
+            if (doctorExists) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Doctor with the given name already exists.");
             }
 
-            return new ResponseEntity<>(doctorService.addDoctor(doctorsRequest), HttpStatus.OK);
+            MessageResponse response = doctorService.addDoctor(doctorsRequest);
+            return ResponseEntity.ok(response);
+        } catch (AddDoctorException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
@@ -54,72 +55,81 @@ public class DoctorController {
     //FindAll doctors
     @GetMapping("/findAll")
     private ResponseEntity<?> getAllDoctors() {
-        try{
-            return new ResponseEntity<>(doctorService.getAllDoctors(), HttpStatus.OK);
-        }catch (DoctorsNotFoundException e) {
+        try {
+            List<Doctors> doctors = doctorService.getAllDoctors();
+            return ResponseEntity.ok(doctors);
+        } catch (DoctorsNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }catch(Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
 
+
     //FindById
-    @GetMapping("/{doctorId}")
-    private ResponseEntity<?> getDoctorById(@PathVariable Long doctorId) {
+    @GetMapping("/getDoctorById/{doctorId}")
+    public ResponseEntity<?> getDoctorById(@PathVariable Long doctorId) {
         try {
-            return ResponseEntity.ok(doctorService.getDoctorById(doctorId));
+            Doctors doctor = doctorService.getDoctorById(doctorId);
+            return ResponseEntity.ok(doctor);
         } catch (DoctorsNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
+
 
     //Find By Doctor Name
     @GetMapping("/findByName/{doctorName}")
     public ResponseEntity<?> getDoctorByName(@PathVariable String doctorName) {
         try {
-            return ResponseEntity.ok(doctorService.getDoctorByName(doctorName));
+            Doctors doctor = doctorService.getDoctorByName(doctorName);
+            return ResponseEntity.ok(doctor);
         } catch (DoctorsNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
 
     //Find by Doctor Specializations
-    @GetMapping("/findBySpecialization/{specializations}")
-    private ResponseEntity<?> getDoctorBySpecialization(@PathVariable String specializations) {
+    @GetMapping("/findBySpecialization/{specialization}")
+    private ResponseEntity<?> getDoctorBySpecialization(@PathVariable String specialization) {
         try {
-            return ResponseEntity.ok(doctorService.getDoctorBySpecialization(specializations));
-        } catch (DoctorsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            Doctors doctors = doctorService.getDoctorsBySpecialization(specialization);
+            return ResponseEntity.ok(doctors);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
         }
     }
+
 
     //Delete Doctors
     @DeleteMapping("/delete/{doctorId}")
     public ResponseEntity<?> deleteDoctor(@PathVariable Long doctorId) {
         try {
-            return ResponseEntity.ok(doctorService.deleteDoctor(doctorId));
+            doctorService.deleteDoctor(doctorId);
+            return ResponseEntity.ok(new MessageResponse("Delete Successfully!"));
         } catch (DoctorsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
         } catch (AddDoctorException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
         }
     }
+
 
     //Update Doctor
     @PutMapping("/update/{doctorId}")
     public ResponseEntity<?> updateDoctor(@PathVariable Long doctorId, @RequestBody DoctorsRequest doctorsRequest) {
         try {
-            return ResponseEntity.ok(doctorService.updateDoctor(doctorId, doctorsRequest));
+            doctorService.updateDoctor(doctorId, doctorsRequest);
+            return ResponseEntity.ok(new MessageResponse("Doctor updated successfully."));
         } catch (DoctorsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new MessageResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
         }
     }
+
 }

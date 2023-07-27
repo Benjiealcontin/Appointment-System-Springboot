@@ -8,23 +8,27 @@ import java.time.LocalDate;
 
 @Service
 public class EmailSenderService {
-
-
     private final JavaMailSender mailSender;
 
     public EmailSenderService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    public void sendSimpleEmail(String toEmail,
+    /*
+    TODO:
+    - create button for approve
+    - create button for not approve
+    - design the email
+     */
+    public void sendAppointmentConfirmationEmail(String toEmail,
                                 String key,
                                 String transactionId,
                                 String appointmentReason,
                                 String appointmentType,
                                 LocalDate dateField,
                                 String timeField,
-                                String doctorName
-    ) {
+                                String doctorName) {
+
         String messageText = "<b>Appointment Information:</b>\n" +
                 "Transaction UUID: " + transactionId + "\n" +
                 "Patient ID: " + key + "\n" +
@@ -39,8 +43,8 @@ public class EmailSenderService {
         message.setTo(toEmail);
         message.setText(messageText);
         message.setSubject("Appointment Notification");
+
         mailSender.send(message);
         System.out.println("Mail Sent successfully");
     }
-
 }

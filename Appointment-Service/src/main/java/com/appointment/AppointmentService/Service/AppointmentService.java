@@ -5,10 +5,10 @@ import com.appointment.AppointmentService.Exception.AddAppointmentException;
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.AppointmentService.Repository.AppointmentRepository;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
-import com.appointment.AppointmentService.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -16,18 +16,19 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Service
+@Slf4j
 public class AppointmentService {
-
 
     private final AppointmentRepository appointmentRepository;
 
-
     @Autowired
     private KafkaTemplate<String,Object> template;
+
     public AppointmentService(AppointmentRepository appointmentRepository) {
         this.appointmentRepository = appointmentRepository;
     }
@@ -55,65 +56,65 @@ public class AppointmentService {
         }
     }
 
-    public void sendMessageToTopic(AppointmentRequest appointmentRequest, String subject) throws JsonProcessingException {
+    public void sendMessageToTopic(AppointmentRequest appointmentRequest, String subject) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
+            // Convert the AppointmentRequest object to JSON
+            String jsonMessage = objectMapper.writeValueAsString(appointmentRequest);
 
-        // Convert the AppointmentRequest object to JSON
-        String jsonMessage = objectMapper.writeValueAsString(appointmentRequest);
-
-        CompletableFuture<SendResult<String, Object>> future = template.send("appointment", subject, jsonMessage);
-        future.whenComplete((result, ex) -> {
-            if (ex == null) {
-                RecordMetadata metadata = result.getRecordMetadata();
-                System.out.println("Sent message with key=[" + subject +
-                        "] and value=[" + jsonMessage +
-                        "] to partition=[" + metadata.partition() +
-                        "] with offset=[" + metadata.offset() + "]");
-            } else {
-                System.out.println("Unable to send message with key=[" + subject +
-                        "] and value=[" + jsonMessage +
-                        "] due to : " + ex.getMessage());
-            }
-        });
+            CompletableFuture<SendResult<String, Object>> future = template.send("appointment", subject, jsonMessage);
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            subject, jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", subject, jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Error occurred while serializing AppointmentRequest to JSON: {}", e.getMessage());
+            // Handle the exception appropriately, e.g., throw it or log it.
+        }
     }
 
+
     //FindAll
-    public Iterable<Appointment> getAllAppointment() {
-        Iterable<Appointment> appointment = appointmentRepository.findAll();
-        if (!appointment.iterator().hasNext()) {
-            throw new AppointmentNotFoundException("No appointment found.");
+    public List<Appointment> getAllAppointments() {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        if (appointments.isEmpty()) {
+            throw new AppointmentNotFoundException("No appointments found.");
         }
-        return appointment;
+        return appointments;
     }
 
     //FindById
-    public Appointment getAppointmentId(Long AppointmentId) {
-        Optional<Appointment> doctorOptional = appointmentRepository.findById(AppointmentId);
-        return doctorOptional.orElseThrow(() -> new AppointmentNotFoundException("Appointment with ID " + AppointmentId + " not found."));
+    public Appointment getAppointmentById(Long appointmentId) {
+        Optional<Appointment> appointmentOptional = appointmentRepository.findById(appointmentId);
+        return appointmentOptional.orElseThrow(() -> new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found."));
     }
 
     //FindByTransactionId
     public Appointment getAppointmentByTransactionId(String transactionId) {
-        Optional<Appointment> doctorOptional = appointmentRepository.findByTransactionId(transactionId);
-        return doctorOptional.orElseThrow(() -> new AppointmentNotFoundException("Appointment with Transaction ID " + transactionId + " not found."));
+        Optional<Appointment> appointmentOptional = appointmentRepository.findByTransactionId(transactionId);
+        return appointmentOptional.orElseThrow(() -> new AppointmentNotFoundException("Appointment with Transaction ID " + transactionId + " not found."));
     }
 
     //Delete Appointment
-    public MessageResponse deleteAppointment(Long AppointmentId) {
-        // Check if the doctor exists in the database
-        if (!appointmentRepository.existsById(AppointmentId)) {
-            throw new AppointmentNotFoundException("Appointment with ID " + AppointmentId + " not found.");
+    public void deleteAppointment(Long appointmentId) {
+        // Check if the appointment exists in the database
+        if (!appointmentRepository.existsById(appointmentId)) {
+            throw new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found.");
         }
-        // Delete the doctor from the database
-        appointmentRepository.deleteById(AppointmentId);
-        return new MessageResponse("Appointment deleted successfully.");
+        // Delete the appointment from the database
+        appointmentRepository.deleteById(appointmentId);
     }
 
     //Update the appointment
-    public MessageResponse updateAppointment(long id, AppointmentRequest appointmentRequest) {
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(id);
+    public void updateAppointment(long appointmentId, AppointmentRequest appointmentRequest) {
+        Optional<Appointment> optionalAppointment = appointmentRepository.findById(appointmentId);
         if (optionalAppointment.isPresent()) {
             Appointment appointment = optionalAppointment.get();
             // Update the appointment with the new values from the appointment request
@@ -125,12 +126,8 @@ public class AppointmentService {
 
             // Save the updated appointment
             appointmentRepository.save(appointment);
-
-            // Return the success response
-            return new MessageResponse("Appointment Updated Successfully");
         } else {
-            throw new AppointmentNotFoundException("Appointment with ID " + id + " not found.");
+            throw new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found.");
         }
     }
-
 }

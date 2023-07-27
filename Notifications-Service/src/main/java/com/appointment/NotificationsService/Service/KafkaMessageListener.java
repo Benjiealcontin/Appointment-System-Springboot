@@ -26,7 +26,7 @@ public class KafkaMessageListener {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @KafkaListener(topics = "appointment", groupId = "appointment-group")
-    public void consume1(ConsumerRecord<String, String> record) {
+    public void consumeAppointment1(ConsumerRecord<String, String> record) {
         String key = record.key();
         String value = record.value();
         int partition = record.partition();
@@ -49,48 +49,12 @@ public class KafkaMessageListener {
             );
             String timeField = jsonNode.get("timeField").asText();
             String doctorName = jsonNode.get("doctorName").asText();
-            log.info("Consumer2 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
+            log.info("Consumer1 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
                     key, email, partition, offset);
 
             // Now you can use the email as needed
-            emailSenderService.sendSimpleEmail(email, key,transactionId,appointmentReason,appointmentType
-            ,dateField,timeField,doctorName);
-        } catch (IOException e) {
-            // Handle any JSON parsing errors here
-            log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
-        }
-    }
-
-    @KafkaListener(topics = "appointment", groupId = "appointment-group")
-    public void consume2(ConsumerRecord<String, String> record) {
-        String key = record.key();
-        String value = record.value();
-        int partition = record.partition();
-        long offset = record.offset();
-
-        try {
-            // Parse the JSON value
-            JsonNode jsonNode = objectMapper.readTree(value);
-
-            // Extract the email field from the JSON
-            String email = jsonNode.get("email").asText();
-            String transactionId = jsonNode.get("transactionId").asText();
-            String appointmentReason = jsonNode.get("appointmentReason").asText();
-            String appointmentType = jsonNode.get("appointmentType").asText();
-            JsonNode dateFieldNode = jsonNode.get("dateField");
-            LocalDate dateField = LocalDate.of(
-                    dateFieldNode.get(0).asInt(),
-                    dateFieldNode.get(1).asInt(),
-                    dateFieldNode.get(2).asInt()
-            );
-            String timeField = jsonNode.get("timeField").asText();
-            String doctorName = jsonNode.get("doctorName").asText();
-            log.info("Consumer2 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
-                    key, email, partition, offset);
-
-            // Now you can use the email as needed
-            emailSenderService.sendSimpleEmail(email, key,transactionId,appointmentReason,appointmentType
-                    ,dateField,timeField,doctorName);
+            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
+                    , dateField, timeField, doctorName);
         } catch (IOException e) {
             // Handle any JSON parsing errors here
             log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
@@ -99,7 +63,7 @@ public class KafkaMessageListener {
 
 
     @KafkaListener(topics = "appointment", groupId = "appointment-group")
-    public void consume3(ConsumerRecord<String, String> record) {
+    public void consumeAppointment2(ConsumerRecord<String, String> record) {
         String key = record.key();
         String value = record.value();
         int partition = record.partition();
@@ -126,8 +90,45 @@ public class KafkaMessageListener {
                     key, email, partition, offset);
 
             // Now you can use the email as needed
-            emailSenderService.sendSimpleEmail(email, key,transactionId,appointmentReason,appointmentType
-                    ,dateField,timeField,doctorName);
+            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
+                    , dateField, timeField, doctorName);
+        } catch (IOException e) {
+            // Handle any JSON parsing errors here
+            log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
+        }
+    }
+
+
+    @KafkaListener(topics = "appointment", groupId = "appointment-group")
+    public void consumeAppointment3(ConsumerRecord<String, String> record) {
+        String key = record.key();
+        String value = record.value();
+        int partition = record.partition();
+        long offset = record.offset();
+
+        try {
+            // Parse the JSON value
+            JsonNode jsonNode = objectMapper.readTree(value);
+
+            // Extract the email field from the JSON
+            String email = jsonNode.get("email").asText();
+            String transactionId = jsonNode.get("transactionId").asText();
+            String appointmentReason = jsonNode.get("appointmentReason").asText();
+            String appointmentType = jsonNode.get("appointmentType").asText();
+            JsonNode dateFieldNode = jsonNode.get("dateField");
+            LocalDate dateField = LocalDate.of(
+                    dateFieldNode.get(0).asInt(),
+                    dateFieldNode.get(1).asInt(),
+                    dateFieldNode.get(2).asInt()
+            );
+            String timeField = jsonNode.get("timeField").asText();
+            String doctorName = jsonNode.get("doctorName").asText();
+            log.info("Consumer3 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
+                    key, email, partition, offset);
+
+            // Now you can use the email as needed
+            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
+                    , dateField, timeField, doctorName);
         } catch (IOException e) {
             // Handle any JSON parsing errors here
             log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
