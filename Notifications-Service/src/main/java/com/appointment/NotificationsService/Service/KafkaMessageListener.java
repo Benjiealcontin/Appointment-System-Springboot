@@ -1,21 +1,26 @@
 package com.appointment.NotificationsService.Service;
 
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import freemarker.template.TemplateException;
+import jakarta.mail.MessagingException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class KafkaMessageListener {
 
 
     private final EmailSenderService emailSenderService;
+
 
     public KafkaMessageListener(EmailSenderService emailSenderService) {
         this.emailSenderService = emailSenderService;
@@ -31,7 +36,6 @@ public class KafkaMessageListener {
         String value = record.value();
         int partition = record.partition();
         long offset = record.offset();
-
         try {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
@@ -52,15 +56,19 @@ public class KafkaMessageListener {
             log.info("Consumer1 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
                     key, email, partition, offset);
 
-            // Now you can use the email as needed
-            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
-                    , dateField, timeField, doctorName);
-        } catch (IOException e) {
-            // Handle any JSON parsing errors here
-            log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
+            Map<String, Object> appointmentModel = new HashMap<>();
+            appointmentModel.put("doctorName",doctorName);
+            appointmentModel.put("transactionId",transactionId);
+            appointmentModel.put("appointmentReason",appointmentReason);
+            appointmentModel.put("appointmentType",appointmentType);
+            appointmentModel.put("dateField",dateField);
+            appointmentModel.put("timeField",timeField);
+
+            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+        } catch (IOException | TemplateException | MessagingException e) {
+            throw new RuntimeException(e);
         }
     }
-
 
     @KafkaListener(topics = "appointment", groupId = "appointment-group")
     public void consumeAppointment2(ConsumerRecord<String, String> record) {
@@ -68,7 +76,6 @@ public class KafkaMessageListener {
         String value = record.value();
         int partition = record.partition();
         long offset = record.offset();
-
         try {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
@@ -89,15 +96,19 @@ public class KafkaMessageListener {
             log.info("Consumer2 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
                     key, email, partition, offset);
 
-            // Now you can use the email as needed
-            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
-                    , dateField, timeField, doctorName);
-        } catch (IOException e) {
-            // Handle any JSON parsing errors here
-            log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
+            Map<String, Object> appointmentModel = new HashMap<>();
+            appointmentModel.put("doctorName",doctorName);
+            appointmentModel.put("transactionId",transactionId);
+            appointmentModel.put("appointmentReason",appointmentReason);
+            appointmentModel.put("appointmentType",appointmentType);
+            appointmentModel.put("dateField",dateField);
+            appointmentModel.put("timeField",timeField);
+
+            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+        } catch (IOException | TemplateException | MessagingException e) {
+            throw new RuntimeException(e);
         }
     }
-
 
     @KafkaListener(topics = "appointment", groupId = "appointment-group")
     public void consumeAppointment3(ConsumerRecord<String, String> record) {
@@ -105,7 +116,6 @@ public class KafkaMessageListener {
         String value = record.value();
         int partition = record.partition();
         long offset = record.offset();
-
         try {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
@@ -126,12 +136,17 @@ public class KafkaMessageListener {
             log.info("Consumer3 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
                     key, email, partition, offset);
 
-            // Now you can use the email as needed
-            emailSenderService.sendAppointmentConfirmationEmail(email, key, transactionId, appointmentReason, appointmentType
-                    , dateField, timeField, doctorName);
-        } catch (IOException e) {
-            // Handle any JSON parsing errors here
-            log.error("Error parsing JSON from Kafka message: {}", e.getMessage());
+            Map<String, Object> appointmentModel = new HashMap<>();
+            appointmentModel.put("doctorName",doctorName);
+            appointmentModel.put("transactionId",transactionId);
+            appointmentModel.put("appointmentReason",appointmentReason);
+            appointmentModel.put("appointmentType",appointmentType);
+            appointmentModel.put("dateField",dateField);
+            appointmentModel.put("timeField",timeField);
+
+            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+        } catch (IOException | TemplateException | MessagingException e) {
+            throw new RuntimeException(e);
         }
     }
 }

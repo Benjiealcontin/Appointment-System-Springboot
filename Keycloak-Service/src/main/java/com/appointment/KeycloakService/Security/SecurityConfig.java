@@ -1,5 +1,4 @@
-package com.appointment.AppointmentService.Security;
-
+package com.appointment.KeycloakService.Security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -21,18 +20,12 @@ public class SecurityConfig {
     public static final String ADMIN = "client_admin";
     public static final String USER = "client_user";
 
-    public static final String DOCTOR = "client_doctor";
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.POST,"api/appointment/add").hasAnyRole(ADMIN,USER)
-                        .requestMatchers(HttpMethod.GET,"api/appointment/getAllAppointment"
-                        ,"api/appointment/getById/*").hasRole(ADMIN)
-                        .requestMatchers(HttpMethod.GET,"api/appointment/transactionId/*").hasRole(DOCTOR)
-                        .requestMatchers(HttpMethod.DELETE,"api/appointment/delete/*").hasAnyRole(ADMIN,DOCTOR)
-                        .requestMatchers(HttpMethod.PUT,"api/appointment/update/*").hasAnyRole(ADMIN,DOCTOR)
+                        .requestMatchers(HttpMethod.POST,"api/keycloak/get-token","api/keycloak/confirmation").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -40,8 +33,8 @@ public class SecurityConfig {
                                 .jwtAuthenticationConverter(jwtAuthConverter)
                         )
                 )
-                  .sessionManagement((session) ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement((session) ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 }

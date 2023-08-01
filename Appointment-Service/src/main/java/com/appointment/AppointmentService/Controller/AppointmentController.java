@@ -7,11 +7,12 @@ import com.appointment.AppointmentService.Exception.InvalidTokenException;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
 import com.appointment.AppointmentService.Response.MessageResponse;
 import com.appointment.AppointmentService.Service.AppointmentService;
+import com.appointment.AppointmentService.Service.CheckIfExistService;
+import com.appointment.AppointmentService.Service.DateUtils;
 import com.appointment.AppointmentService.Service.TokenDecodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -24,10 +25,12 @@ public class AppointmentController {
 
     private final TokenDecodeService tokenService;
 
+    private final CheckIfExistService checkIfExistService;
 
-    public AppointmentController(AppointmentService appointmentService, TokenDecodeService tokenService) {
+    public AppointmentController(AppointmentService appointmentService, TokenDecodeService tokenService, CheckIfExistService checkIfExistService) {
         this.appointmentService = appointmentService;
         this.tokenService = tokenService;
+        this.checkIfExistService = checkIfExistService;
     }
 
     @PostMapping("/add")
@@ -36,12 +39,24 @@ public class AppointmentController {
             String token = tokenService.extractToken(bearerToken);
             String subject = tokenService.decodeSubjectFromToken(token);
 
-            // Send message to topic
-            appointmentService.sendMessageToTopic(appointmentRequest, subject);
+            boolean isPast = DateUtils.isDateInPast(appointmentRequest.getDateField());
+            if (isPast) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Cannot book an appointment in the past. Please choose a date in the present or future.");
+            } else {
+                //Check if Exist
+                boolean exists = checkIfExistService.doesDataExist(appointmentRequest);
+                if (exists) {
+                    String message = "Appointment is already booked on " + appointmentRequest.getDateField() + " at " + appointmentRequest.getTimeField() +
+                            ". Please choose another date and time.";
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+                } else {
+                    // Send message to topic
+                    appointmentService.sendMessageToTopic(appointmentRequest, subject);
 
-            // Create the appointment
-            Appointment appointment = appointmentService.createAppointment(appointmentRequest, subject);
-            return ResponseEntity.ok(appointment);
+                    // Create the appointment
+                    return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest, subject));
+                }
+            }
         } catch (AddAppointmentException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         } catch (InvalidTokenException e) {
@@ -65,7 +80,7 @@ public class AppointmentController {
     }
 
     //FindById
-    @GetMapping("/{appointmentId}")
+    @GetMapping("/getById/{appointmentId}")
     public ResponseEntity<?> getAppointmentId(@PathVariable Long appointmentId) {
         try {
             Appointment appointment = appointmentService.getAppointmentById(appointmentId);

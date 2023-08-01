@@ -38,6 +38,7 @@ public class ApproveService {
    TODO:
    - Add Circuit Breaker
    - Add time limiter
+   - Repair the exception of Webclient WebClientResponseException.NotFound ex
     */
 
     //Approve Appointment
@@ -57,7 +58,6 @@ public class ApproveService {
                Approve approve = new Approve();
                approve.setAppointmentReason(appointment.getAppointmentReason());
                approve.setAppointmentType(appointment.getAppointmentType());
-               approve.setAppointmentType(transactionId);
                approve.setDoctorId(appointment.getDoctorId());
                approve.setAppointmentStatus("Approved");
                approve.setPatientId(appointment.getPatientId());
@@ -91,7 +91,7 @@ public class ApproveService {
        } catch (WebClientResponseException.ServiceUnavailable ex) {
            throw new WebClientException("Error occurred while calling the external service: ","Service Unavailable from Appointment Service");
        }catch (Exception e){
-           throw new ApprovalException("Error occurred while approving the appointment.", e.getMessage());
+           throw new ApprovalException("Error occurred while approving the appointment." + e.getMessage());
        }
     }
 

@@ -5,6 +5,7 @@ import com.appointment.AppointmentService.Exception.AddAppointmentException;
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.AppointmentService.Repository.AppointmentRepository;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
+import com.appointment.AppointmentService.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -34,7 +35,7 @@ public class AppointmentService {
     }
 
     //Add Appointment
-    public Appointment createAppointment(AppointmentRequest appointmentRequest, String subject) {
+    public MessageResponse createAppointment(AppointmentRequest appointmentRequest, String subject) {
         try {
             Appointment appointment = new Appointment();
             appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
@@ -49,13 +50,16 @@ public class AppointmentService {
             appointment.setDateField(appointmentRequest.getDateField());
             appointment.setTimeField(appointmentRequest.getTimeField());
 
-            return appointmentRepository.save(appointment);
+            appointmentRepository.save(appointment);
+
+            return new MessageResponse("Appointment Successfully!");
         } catch (DataAccessException e) {
             // Log the error or perform any other actions as needed
             throw new AddAppointmentException("Error occurred while saving the appointment.", e);
         }
     }
 
+    //Send notification
     public void sendMessageToTopic(AppointmentRequest appointmentRequest, String subject) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
