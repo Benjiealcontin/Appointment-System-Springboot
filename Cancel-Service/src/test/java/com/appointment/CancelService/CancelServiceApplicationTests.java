@@ -1,10 +1,10 @@
-package com.appointment.CancellationService;
+package com.appointment.CancelService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class CancellationServiceApplicationTests {
+class CancelServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

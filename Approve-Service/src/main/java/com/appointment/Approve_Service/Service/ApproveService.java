@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.net.HttpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -74,6 +75,21 @@ public class ApproveService {
                        .retrieve()
                        .bodyToMono(Appointment.class)
                        .block();
+
+
+               // Update the appointment status to "Approved" in the retrieved Appointment object
+               appointment.setAppointmentStatus("Approved");
+
+               // Save the updated appointment status back to the Appointment service
+               webClientBuilder.build()
+                       .put()
+                       .uri("http://Appointment-Service/api/appointment/update/{appointmentId}", appointment.getId())
+                       .header(HttpHeaders.AUTHORIZATION, token)
+                       .body(BodyInserters.fromValue(appointment)) // Pass the updated appointment as the request body
+                       .retrieve()
+                       .bodyToMono(Appointment.class)
+                       .block();
+
            } else {
                // Throw an exception if the appointment object is null
                throw new IllegalArgumentException("The appointment object is null.");

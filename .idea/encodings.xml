@@ -8,6 +8,8 @@
     <file url="file://$PROJECT_DIR$/Approve-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Available-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Available-Service/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Cancel-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Cancel-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Cancellation-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Cancellation-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Dentist-Service/src/main/java" charset="UTF-8" />
@@ -22,6 +24,8 @@
     <file url="file://$PROJECT_DIR$/Notifications-Service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Notifications-Service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/User-Service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/demo/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
   </component>

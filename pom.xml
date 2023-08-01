@@ -17,7 +17,7 @@
         <module>Keycloak-Service</module>
         <module>Approve-Service</module>
         <module>Notifications-Service</module>
-        <module>Cancellation-Service</module>
+        <module>Cancel-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>20</maven.compiler.source>

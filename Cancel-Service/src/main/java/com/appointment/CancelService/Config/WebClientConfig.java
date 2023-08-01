@@ -1,4 +1,4 @@
-package com.appointment.Approve_Service.Config;
+package com.appointment.CancelService.Config;
 
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
