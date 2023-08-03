@@ -11,6 +11,9 @@ public class DoctorsRequest {
     @NotBlank(message = "Doctor name must not be blank")
     private String doctorName;
 
+    @NotBlank(message = "Location must not be blank")
+    private String location;
+
     @NotEmpty(message = "Specializations list must not be empty")
     private List<String> specializations;
 

@@ -1,15 +1,15 @@
 package com.appointment.AppointmentService.Controller;
 
 import com.appointment.AppointmentService.Entity.Appointment;
-import com.appointment.AppointmentService.Exception.AddAppointmentException;
+import com.appointment.AppointmentService.Exception.AppointmentHoursMismatchException;
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.AppointmentService.Exception.InvalidTokenException;
+import com.appointment.AppointmentService.Exception.WebClientException;
+import com.appointment.AppointmentService.Request.AppointmentData;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
+import com.appointment.AppointmentService.Request.UserTokenData;
 import com.appointment.AppointmentService.Response.MessageResponse;
-import com.appointment.AppointmentService.Service.AppointmentService;
-import com.appointment.AppointmentService.Service.CheckIfExistService;
-import com.appointment.AppointmentService.Service.DateUtils;
-import com.appointment.AppointmentService.Service.TokenDecodeService;
+import com.appointment.AppointmentService.Service.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +37,7 @@ public class AppointmentController {
     public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest appointmentRequest, @RequestHeader("Authorization") String bearerToken) {
         try {
             String token = tokenService.extractToken(bearerToken);
-            String subject = tokenService.decodeSubjectFromToken(token);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token);
 
             boolean isPast = DateUtils.isDateInPast(appointmentRequest.getDateField());
             if (isPast) {
@@ -50,15 +50,16 @@ public class AppointmentController {
                             ". Please choose another date and time.";
                     return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
                 } else {
-                    // Send message to topic
-                    appointmentService.sendMessageToTopic(appointmentRequest, subject);
-
                     // Create the appointment
-                    return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest, subject));
+                    return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest, userTokenData.getSub(),bearerToken,userTokenData));
                 }
             }
-        } catch (AddAppointmentException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        } catch (AppointmentNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (AppointmentHoursMismatchException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (WebClientException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
         } catch (InvalidTokenException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token: " + e.getMessage());
         } catch (Exception e) {

@@ -65,7 +65,6 @@ public class DoctorController {
         }
     }
 
-
     //FindById
     @GetMapping("/getDoctorById/{doctorId}")
     public ResponseEntity<?> getDoctorById(@PathVariable Long doctorId) {

@@ -16,7 +16,7 @@ public class Doctors {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String doctorName;
-
+    private String location;
     @ElementCollection
     private List<String> specializations;
     @ElementCollection

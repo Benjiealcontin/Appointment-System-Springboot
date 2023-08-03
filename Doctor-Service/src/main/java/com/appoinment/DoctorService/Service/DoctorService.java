@@ -27,6 +27,7 @@ public class DoctorService {
     public MessageResponse addDoctor(DoctorsRequest doctorsRequest) {
         Doctors doctors = new Doctors();
         doctors.setDoctorName(doctorsRequest.getDoctorName());
+        doctors.setLocation(doctorsRequest.getLocation());
         doctors.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
         doctors.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
         doctors.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
@@ -92,6 +93,7 @@ public class DoctorService {
 
         // Update the doctor's fields with the new data from the request
         existingDoctor.setDoctorName(doctorsRequest.getDoctorName());
+        existingDoctor.setLocation(doctorsRequest.getLocation());
         existingDoctor.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
         existingDoctor.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
         existingDoctor.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));

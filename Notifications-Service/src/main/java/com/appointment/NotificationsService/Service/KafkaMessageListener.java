@@ -1,6 +1,7 @@
 package com.appointment.NotificationsService.Service;
 
 
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import freemarker.template.TemplateException;
@@ -40,21 +41,25 @@ public class KafkaMessageListener {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
 
-            // Extract the email field from the JSON
-            String email = jsonNode.get("email").asText();
-            String transactionId = jsonNode.get("transactionId").asText();
-            String appointmentReason = jsonNode.get("appointmentReason").asText();
-            String appointmentType = jsonNode.get("appointmentType").asText();
-            JsonNode dateFieldNode = jsonNode.get("dateField");
+            // Extract transactionId from the JSON
+            String transactionId = jsonNode.get("appointmentData").get("transactionId").asText();
+            String appointmentReason  = jsonNode.get("appointmentData").get("appointmentReason").asText();
+            String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
+            String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
+            String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
+            JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
                     dateFieldNode.get(0).asInt(),
                     dateFieldNode.get(1).asInt(),
                     dateFieldNode.get(2).asInt()
             );
-            String timeField = jsonNode.get("timeField").asText();
-            String doctorName = jsonNode.get("doctorName").asText();
-            log.info("Consumer1 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
-                    key, email, partition, offset);
+
+            // Extract Patient details from the JSON
+            String fullName = jsonNode.get("userTokenData").get("fullName").asText();
+            int age = Integer.parseInt(jsonNode.get("userTokenData").get("age").asText());
+            String gender = jsonNode.get("userTokenData").get("gender").asText();
+            String toEmail = jsonNode.get("userTokenData").get("email").asText();
+            String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -63,8 +68,16 @@ public class KafkaMessageListener {
             appointmentModel.put("appointmentType",appointmentType);
             appointmentModel.put("dateField",dateField);
             appointmentModel.put("timeField",timeField);
+            appointmentModel.put("fullName",fullName);
+            appointmentModel.put("age",age);
+            appointmentModel.put("email2",toEmail);
+            appointmentModel.put("gender",gender);
+            appointmentModel.put("phoneNumber",phoneNumber);
 
-            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+            emailSenderService.sendAppointmentConfirmationEmail(toEmail, appointmentModel);
+
+            log.info("Consumer3 received the message with key=[{}]from partition=[{}] with offset=[{}]",
+                    key, partition, offset);
         } catch (IOException | TemplateException | MessagingException e) {
             throw new RuntimeException(e);
         }
@@ -80,21 +93,25 @@ public class KafkaMessageListener {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
 
-            // Extract the email field from the JSON
-            String email = jsonNode.get("email").asText();
-            String transactionId = jsonNode.get("transactionId").asText();
-            String appointmentReason = jsonNode.get("appointmentReason").asText();
-            String appointmentType = jsonNode.get("appointmentType").asText();
-            JsonNode dateFieldNode = jsonNode.get("dateField");
+            // Extract transactionId from the JSON
+            String transactionId = jsonNode.get("appointmentData").get("transactionId").asText();
+            String appointmentReason  = jsonNode.get("appointmentData").get("appointmentReason").asText();
+            String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
+            String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
+            String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
+            JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
                     dateFieldNode.get(0).asInt(),
                     dateFieldNode.get(1).asInt(),
                     dateFieldNode.get(2).asInt()
             );
-            String timeField = jsonNode.get("timeField").asText();
-            String doctorName = jsonNode.get("doctorName").asText();
-            log.info("Consumer2 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
-                    key, email, partition, offset);
+
+            // Extract Patient details from the JSON
+            String fullName = jsonNode.get("userTokenData").get("fullName").asText();
+            int age = Integer.parseInt(jsonNode.get("userTokenData").get("age").asText());
+            String gender = jsonNode.get("userTokenData").get("gender").asText();
+            String toEmail = jsonNode.get("userTokenData").get("email").asText();
+            String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -103,8 +120,16 @@ public class KafkaMessageListener {
             appointmentModel.put("appointmentType",appointmentType);
             appointmentModel.put("dateField",dateField);
             appointmentModel.put("timeField",timeField);
+            appointmentModel.put("fullName",fullName);
+            appointmentModel.put("age",age);
+            appointmentModel.put("email2",toEmail);
+            appointmentModel.put("gender",gender);
+            appointmentModel.put("phoneNumber",phoneNumber);
 
-            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+            emailSenderService.sendAppointmentConfirmationEmail(toEmail, appointmentModel);
+
+            log.info("Consumer2 received the message with key=[{}]from partition=[{}] with offset=[{}]",
+                    key, partition, offset);
         } catch (IOException | TemplateException | MessagingException e) {
             throw new RuntimeException(e);
         }
@@ -120,21 +145,25 @@ public class KafkaMessageListener {
             // Parse the JSON value
             JsonNode jsonNode = objectMapper.readTree(value);
 
-            // Extract the email field from the JSON
-            String email = jsonNode.get("email").asText();
-            String transactionId = jsonNode.get("transactionId").asText();
-            String appointmentReason = jsonNode.get("appointmentReason").asText();
-            String appointmentType = jsonNode.get("appointmentType").asText();
-            JsonNode dateFieldNode = jsonNode.get("dateField");
+            // Extract transactionId from the JSON
+            String transactionId = jsonNode.get("appointmentData").get("transactionId").asText();
+            String appointmentReason  = jsonNode.get("appointmentData").get("appointmentReason").asText();
+            String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
+            String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
+            String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
+            JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
                     dateFieldNode.get(0).asInt(),
                     dateFieldNode.get(1).asInt(),
                     dateFieldNode.get(2).asInt()
             );
-            String timeField = jsonNode.get("timeField").asText();
-            String doctorName = jsonNode.get("doctorName").asText();
-            log.info("Consumer3 received the message with key=[{}] and email=[{}] from partition=[{}] with offset=[{}]",
-                    key, email, partition, offset);
+
+            // Extract Patient details from the JSON
+            String fullName = jsonNode.get("userTokenData").get("fullName").asText();
+            int age = Integer.parseInt(jsonNode.get("userTokenData").get("age").asText());
+            String gender = jsonNode.get("userTokenData").get("gender").asText();
+            String toEmail = jsonNode.get("userTokenData").get("email").asText();
+            String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -143,8 +172,16 @@ public class KafkaMessageListener {
             appointmentModel.put("appointmentType",appointmentType);
             appointmentModel.put("dateField",dateField);
             appointmentModel.put("timeField",timeField);
+            appointmentModel.put("fullName",fullName);
+            appointmentModel.put("age",age);
+            appointmentModel.put("email2",toEmail);
+            appointmentModel.put("gender",gender);
+            appointmentModel.put("phoneNumber",phoneNumber);
 
-            emailSenderService.sendAppointmentConfirmationEmail(email,appointmentModel);
+            emailSenderService.sendAppointmentConfirmationEmail(toEmail, appointmentModel);
+
+            log.info("Consumer3 received the message with key=[{}]from partition=[{}] with offset=[{}]",
+                    key, partition, offset);
         } catch (IOException | TemplateException | MessagingException e) {
             throw new RuntimeException(e);
         }

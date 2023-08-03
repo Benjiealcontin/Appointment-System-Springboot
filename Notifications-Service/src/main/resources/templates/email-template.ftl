@@ -70,7 +70,7 @@ opacity: 0.8;
 
 <body>
 	 <div class="appointment-notification">
-    <h2>Appointment Reminder</h2>
+    <h2>Appointment Request</h2>
     <p><strong>Transaction ID:</strong> ${transactionId}</p>
     <p><strong>Doctor Name</strong> ${doctorName}</p>
     <p><strong>Appointment Reason:</strong> ${appointmentReason}</p>
@@ -79,11 +79,11 @@ opacity: 0.8;
     <p><strong>Time:</strong> ${timeField}</p>
     <hr>
     <h3>Patient Information</h3>
-    <p><strong>Name:</strong> John Doe</p>
-    <p><strong>Age:</strong> 35</p>
-    <p><strong>Gender:</strong> Male</p>
-    <p><strong>Email:</strong> johndoe@example.com</p>
-    <p><strong>Phone:</strong> (555) 123-4567</p>
+    <p><strong>Name:</strong> ${fullName}</p>
+    <p><strong>Age:</strong> ${age}</p>
+    <p><strong>Gender:</strong> ${gender}</p>
+    <p><strong>Email:</strong> ${email2}</p>
+    <p><strong>Phone:</strong> ${phoneNumber}</p>
   </div>
 </body>
 </script>

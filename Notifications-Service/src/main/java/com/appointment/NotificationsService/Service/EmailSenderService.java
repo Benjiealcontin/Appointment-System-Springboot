@@ -46,7 +46,7 @@ public class EmailSenderService {
         helper.setTo(toEmail);
         helper.setText(html, true);
         helper.setSubject("Appointment Notification");
-//        helper.setFrom("alcontinebenezer07@gmail.com");
+        helper.setFrom("benjiealcontin23@gmail.com");
         mailSender.send(message);
         System.out.println("Mail Sent successfully");
     }
