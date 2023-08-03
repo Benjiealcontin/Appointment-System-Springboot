@@ -26,6 +26,8 @@ public class SecurityConfig {
                 authorizeHttpRequests(auth ->
                 {
                     auth.requestMatchers(HttpMethod.POST, "/api/cancel/*").hasAnyRole(ADMIN,DOCTOR,USER);
+                    auth.requestMatchers(HttpMethod.POST, "/api/cancel/getAllCancel",
+                            "/getByTransactionId/*","/getById/*").hasAnyRole(ADMIN,DOCTOR,USER);
                     auth.anyRequest().authenticated();
                 });
 

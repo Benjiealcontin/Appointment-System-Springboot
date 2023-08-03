@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class CancelService {
@@ -92,5 +94,27 @@ public class CancelService {
         }
     }
 
+    //TODO: Producer kafka
+
+    //FindAll
+    public List<Cancel> getAllCancelAppointments() {
+        List<Cancel> approves = cancelRepository.findAll();
+        if (approves.isEmpty()) {
+            throw new CancelException("No cancel appointment found.");
+        }
+        return approves;
+    }
+
+    //GetByTransaction
+    public Cancel getCancelByTransactionId(String transactionId) {
+        Optional<Cancel> cancelOptional = cancelRepository.findByTransactionId(transactionId);
+        return cancelOptional.orElseThrow(() -> new CancelException("Cancel with TransactionID " + transactionId + " not found."));
+    }
+
+    //GetById
+    public Cancel getCancelById(Long cancelId) {
+        Optional<Cancel> cancelOptional = cancelRepository.findById(cancelId);
+        return cancelOptional.orElseThrow(() -> new CancelException("Cancel with Id " + cancelId + " not found."));
+    }
 
 }
