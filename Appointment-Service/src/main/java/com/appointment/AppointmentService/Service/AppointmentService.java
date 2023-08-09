@@ -2,10 +2,7 @@ package com.appointment.AppointmentService.Service;
 
 import com.appoinment.DoctorService.Entity.Doctors;
 import com.appointment.AppointmentService.Entity.Appointment;
-import com.appointment.AppointmentService.Exception.AddAppointmentException;
-import com.appointment.AppointmentService.Exception.AppointmentHoursMismatchException;
-import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
-import com.appointment.AppointmentService.Exception.WebClientException;
+import com.appointment.AppointmentService.Exception.*;
 import com.appointment.AppointmentService.Repository.AppointmentRepository;
 import com.appointment.AppointmentService.Request.AppointmentData;
 import com.appointment.AppointmentService.Request.AppointmentMessage;
@@ -26,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -47,9 +45,8 @@ public class AppointmentService {
     }
 
     //TODO: Circuit Beaker and time limiter
-
     //Add Appointment
-    public MessageResponse createAppointment(AppointmentRequest appointmentRequest, String subject,String bearerToken,UserTokenData userTokenData) throws JsonProcessingException {
+    public MessageResponse createAppointment(AppointmentRequest appointmentRequest,String bearerToken,UserTokenData userTokenData) throws JsonProcessingException {
         try {
             Doctors doctor = webClientBuilder.build()
                     .get()
@@ -59,42 +56,46 @@ public class AppointmentService {
                     .bodyToMono(Doctors.class)
                     .block();
 
-            if (doctor != null) {
-                List<String> doctorWorkingHours = doctor.getWorkingHours();
-
-                // Compare appointment time to doctorWorkingHours
-                if (!doctorWorkingHours.contains(appointmentRequest.getTimeField())) {
-                    throw new AppointmentHoursMismatchException("Appointment time does not match doctor's working hours.");
-                }
-
-                Appointment appointment = new Appointment();
-                appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
-                appointment.setTransactionId(appointmentRequest.getTransactionId());
-                appointment.setDoctorName(doctor.getDoctorName());
-                appointment.setLocation(doctor.getLocation());
-                appointment.setAppointmentType(appointmentRequest.getAppointmentType());
-                appointment.setAppointmentStatus("Pending");
-                appointment.setDoctorId(appointmentRequest.getDoctorId());
-                appointment.setPatientId(subject);
-                appointment.setDateField(appointmentRequest.getDateField());
-                appointment.setTimeField(appointmentRequest.getTimeField());
-
-                AppointmentData appointmentData = new AppointmentData();
-                appointmentData.setAppointmentStatus(appointmentRequest.getAppointmentStatus());
-                appointmentData.setAppointmentReason(appointmentRequest.getAppointmentReason());
-                appointmentData.setAppointmentType(appointmentRequest.getAppointmentType());
-                appointmentData.setTransactionId(appointmentRequest.getTransactionId());
-                appointmentData.setDoctorName(doctor.getDoctorName());
-                appointmentData.setDateField(appointmentRequest.getDateField());
-                appointmentData.setTimeField(appointmentRequest.getTimeField());
-                // Send message to topic
-                sendMessageToTopic(appointmentData, userTokenData);
-
-                appointmentRepository.save(appointment);
-            }else{
-                // Throw an exception if the appointment object is null
-                throw new IllegalArgumentException("The doctor object is null.");
+            if (doctor == null) {
+                throw new DoctorNotFoundException("Doctor not found.");
             }
+
+            List<String> contactInformation = doctor.getContactInformation();
+            String doctorEmail = contactInformation.get(0);
+
+            List<String> doctorWorkingHours = doctor.getWorkingHours();
+
+            if (!doctorWorkingHours.contains(appointmentRequest.getTimeField())) {
+                throw new AppointmentHoursMismatchException("Appointment time does not match doctor's working hours.");
+            }
+
+            Appointment appointment = new Appointment();
+            appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
+            appointment.setTransactionId(appointmentRequest.getTransactionId());
+            appointment.setDoctorName(doctor.getDoctorName());
+            appointment.setLocation(doctor.getLocation());
+            appointment.setDoctorEmail(doctorEmail);
+            appointment.setAppointmentType(appointmentRequest.getAppointmentType());
+            appointment.setAppointmentStatus("Pending");
+            appointment.setDoctorId(appointmentRequest.getDoctorId());
+            appointment.setPatientId(userTokenData.getSub());
+            appointment.setDateField(appointmentRequest.getDateField());
+            appointment.setTimeField(appointmentRequest.getTimeField());
+            appointment.setPatientEmail(userTokenData.getEmail());
+
+            AppointmentData appointmentData = new AppointmentData();
+            appointmentData.setAppointmentStatus(appointmentRequest.getAppointmentStatus());
+            appointmentData.setAppointmentReason(appointmentRequest.getAppointmentReason());
+            appointmentData.setAppointmentType(appointmentRequest.getAppointmentType());
+            appointmentData.setTransactionId(appointmentRequest.getTransactionId());
+            appointmentData.setDoctorName(doctor.getDoctorName());
+            appointmentData.setDoctorEmail(doctor.getContactInformation().toString());
+            appointmentData.setDateField(appointmentRequest.getDateField());
+            appointmentData.setTimeField(appointmentRequest.getTimeField());
+            // Send message to topic
+            sendMessageToTopic(appointmentData, userTokenData);
+
+            appointmentRepository.save(appointment);
 
             return new MessageResponse("Appointment Successfully!");
         } catch (WebClientResponseException.NotFound ex) {
@@ -106,7 +107,7 @@ public class AppointmentService {
             // Rethrow the AppointmentNotFoundException from the ApprovalService
             throw new AppointmentNotFoundException(jsonNode.get("message").asText());
         } catch (WebClientResponseException.ServiceUnavailable ex) {
-            throw new WebClientException("Error occurred while calling the external service: Service Unavailable from Appointment Service");
+            throw new WebClientException("Error occurred while calling the external service: Service Unavailable from other Service");
         } catch (AppointmentHoursMismatchException e) {
             throw e;
         }catch (Exception e){
@@ -114,6 +115,7 @@ public class AppointmentService {
         }
     }
 
+    //TODO: Circuit Beaker
     //Send notification
     public void sendMessageToTopic(AppointmentData appointmentData, UserTokenData userTokenData) {
         try {
@@ -141,7 +143,6 @@ public class AppointmentService {
             // Handle the exception appropriately, e.g., throw it or log it.
         }
     }
-
 
     //FindAll
     public List<Appointment> getAllAppointments() {

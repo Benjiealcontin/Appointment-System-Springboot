@@ -2,6 +2,8 @@ package com.appointment.CancelService.Controller;
 
 import com.appointment.CancelService.Entity.Cancel;
 import com.appointment.CancelService.Exception.CancelException;
+import com.appointment.CancelService.Request.CancelRequest;
+import com.appointment.CancelService.Request.UserTokenData;
 import com.appointment.CancelService.Response.MessageResponse;
 import com.appointment.CancelService.Service.CancelService;
 import com.appointment.CancelService.Service.TokenDecodeService;
@@ -24,12 +26,12 @@ public class CancelController {
         this.tokenService = tokenService;
     }
 
-    @GetMapping("/{transactionId}")
-    public ResponseEntity<?> cancelAppointment(@PathVariable String transactionId, @RequestHeader("Authorization")String bearerToken) {
+    @PostMapping("/{transactionId}")
+    public ResponseEntity<?> doctorCancelAppointment(@RequestBody CancelRequest cancelRequest, @PathVariable String transactionId, @RequestHeader("Authorization")String bearerToken) {
         try {
             String token = tokenService.extractToken(bearerToken);
-            String subject = tokenService.decodeSubjectFromToken(token);
-            MessageResponse response = cancelService.cancelAppointment(transactionId, subject, bearerToken);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token);
+            MessageResponse response = cancelService.cancelAppointment(transactionId, userTokenData, bearerToken, cancelRequest);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body("An error occurred: " + e.getMessage());

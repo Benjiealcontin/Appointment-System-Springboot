@@ -51,7 +51,7 @@ public class AppointmentController {
                     return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
                 } else {
                     // Create the appointment
-                    return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest, userTokenData.getSub(),bearerToken,userTokenData));
+                    return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest,bearerToken,userTokenData));
                 }
             }
         } catch (AppointmentNotFoundException e) {

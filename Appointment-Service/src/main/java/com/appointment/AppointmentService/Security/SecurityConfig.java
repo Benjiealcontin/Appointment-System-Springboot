@@ -30,6 +30,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,"api/appointment/add").hasAnyRole(ADMIN,USER)
                         .requestMatchers(HttpMethod.GET,"api/appointment/getAllAppointment"
                         ,"api/appointment/getById/*").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"api/appointment/transactionId/*").hasAnyRole(DOCTOR,USER)
                         .requestMatchers(HttpMethod.DELETE,"api/appointment/delete/*").hasAnyRole(ADMIN,DOCTOR,USER)
                         .requestMatchers(HttpMethod.PUT,"api/appointment/update/*").hasAnyRole(ADMIN,DOCTOR)

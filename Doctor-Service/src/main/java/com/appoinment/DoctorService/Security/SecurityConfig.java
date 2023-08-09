@@ -19,14 +19,16 @@ public class SecurityConfig {
     public static final String ADMIN = "client_admin";
     public static final String USER = "client_user";
 
+    public static final String DOCTOR = "client_doctor";
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.
                 authorizeHttpRequests(auth ->
                 {
-                    auth.requestMatchers(HttpMethod.GET, "/").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/actuator/*").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/api/doctor/findAll"
-                    ,"/api/doctor/getDoctorById/*","/api/doctor/findByName/*","/api/doctor/findBySpecialization/*").hasAnyRole(ADMIN,USER);
+                    ,"/api/doctor/getDoctorById/*","/api/doctor/findByName/*","/api/doctor/findBySpecialization/*").hasAnyRole(ADMIN,USER,DOCTOR);
                     auth.requestMatchers(HttpMethod.POST, "/api/doctor/add").hasRole(ADMIN);
                     auth.requestMatchers(HttpMethod.DELETE, "/api/doctor/delete/*").hasRole(ADMIN);
                     auth.requestMatchers(HttpMethod.PUT, "/api/doctor/update/*").hasRole(ADMIN);

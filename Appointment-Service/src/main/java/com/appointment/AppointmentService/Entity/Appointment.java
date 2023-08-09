@@ -25,6 +25,8 @@ public class Appointment {
     private String doctorName;
     private String location;
     private String patientId;
+    private String doctorEmail;
+    private String patientEmail;
     private String appointmentReason;
     private String appointmentType;
     private String appointmentStatus;

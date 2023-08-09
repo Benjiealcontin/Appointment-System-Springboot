@@ -1,31 +1,41 @@
 package com.appointment.Approve_Service.Service;
 
+
+import com.appoinment.DoctorService.Entity.Doctors;
 import com.appointment.AppointmentService.Entity.Appointment;
-import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.Approve_Service.Entity.Approve;
 import com.appointment.Approve_Service.Exception.ApprovalException;
 import com.appointment.Approve_Service.Exception.ApproveNotFoundException;
 import com.appointment.Approve_Service.Exception.WebClientException;
 import com.appointment.Approve_Service.Repository.ApproveRepository;
-import com.appointment.Approve_Service.Request.ApproveRequest;
+import com.appointment.Approve_Service.Request.*;
 import com.appointment.Approve_Service.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
+@Slf4j
 public class ApproveService {
 
     private final ApproveRepository approveRepository;
+
+    @Autowired
+    private KafkaTemplate<String,Object> template;
 
     private final WebClient.Builder webClientBuilder;
 
@@ -43,13 +53,13 @@ public class ApproveService {
     */
 
     //Approve Appointment
-    public MessageResponse approveAppointment(String transactionId,String token) throws JsonProcessingException {
+    public MessageResponse approveAppointment(String transactionId, String bearerToken, UserTokenData userTokenData) throws JsonProcessingException {
        try{
            //Get the data from Appointment
            Appointment appointment = webClientBuilder.build()
                    .get()
                    .uri("http://Appointment-Service/api/appointment/transactionId/{transactionId}", transactionId)
-                   .header(HttpHeaders.AUTHORIZATION, token) // Add Authorization header
+                   .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                    .retrieve()
                    .bodyToMono(Appointment.class)
                    .block();
@@ -71,25 +81,33 @@ public class ApproveService {
                webClientBuilder.build()
                        .delete()
                        .uri("http://Appointment-Service/api/appointment/delete/{appointmentId}", appointment.getId())
-                       .header(HttpHeaders.AUTHORIZATION, token) // Add Authorization header
+                       .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                        .retrieve()
                        .bodyToMono(Appointment.class)
                        .block();
 
-
-               // Update the appointment status to "Approved" in the retrieved Appointment object
-               appointment.setAppointmentStatus("Approved");
-
-               // Save the updated appointment status back to the Appointment service
-               webClientBuilder.build()
-                       .put()
-                       .uri("http://Appointment-Service/api/appointment/update/{appointmentId}", appointment.getId())
-                       .header(HttpHeaders.AUTHORIZATION, token)
-                       .body(BodyInserters.fromValue(appointment)) // Pass the updated appointment as the request body
+               //Get the data from doctor service
+               Doctors doctors = webClientBuilder.build()
+                       .get()
+                       .uri("http://Doctor-Service/api/doctor/getDoctorById/{doctorId}", appointment.getDoctorId())
+                       .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                        .retrieve()
-                       .bodyToMono(Appointment.class)
+                       .bodyToMono(Doctors.class)
                        .block();
 
+               if (doctors != null) {
+                   ApproveData approveData = new ApproveData();
+                   approveData.setAppointmentReason(appointment.getAppointmentReason());
+                   approveData.setLocation(doctors.getLocation());
+                   approveData.setDoctorName(doctors.getDoctorName());
+                   approveData.setTransactionId(appointment.getTransactionId());
+                   approveData.setTimeField(appointment.getTimeField());
+                   approveData.setDateField(appointment.getDateField());
+                   approveData.setAppointmentType(appointment.getAppointmentType());
+                   approveData.setPatientEmail(appointment.getPatientEmail());
+
+                   sendMessageToTopic(approveData,userTokenData);
+               }
            } else {
                // Throw an exception if the appointment object is null
                throw new IllegalArgumentException("The appointment object is null.");
@@ -103,12 +121,135 @@ public class ApproveService {
            JsonNode jsonNode = objectMapper.readTree(responseBody);
 
            // Rethrow the AppointmentNotFoundException from the ApprovalService
-           throw new AppointmentNotFoundException(jsonNode.get("message").asText());
+           throw new ApproveNotFoundException(jsonNode.get("message").asText());
        } catch (WebClientResponseException.ServiceUnavailable ex) {
            throw new WebClientException("Error occurred while calling the external service: ","Service Unavailable from Appointment Service");
        }catch (Exception e){
            throw new ApprovalException("Error occurred while approving the appointment." + e.getMessage());
        }
+    }
+
+
+    //TODO: Circuit Beaker
+    //Send notification
+    public void sendMessageToTopic(ApproveData approveData, UserTokenData userTokenData) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            // Convert the AppointmentMessage object to JSON
+            String jsonMessage = objectMapper.writeValueAsString(approveData);
+
+            CompletableFuture<SendResult<String, Object>> future = template.send("approve", userTokenData.getSub(), jsonMessage);
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            userTokenData.getSub(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenData.getSub(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Error occurred while serializing AppointmentRequest to JSON: {}", e.getMessage());
+            // Handle the exception appropriately, e.g., throw it or log it.
+        }
+    }
+
+    public MessageResponse disapproveAppointment(String transactionId, String bearerToken, UserTokenData userTokenData, DisapproveRequest disapproveRequest) throws JsonProcessingException {
+        try{
+            //Get the data from Appointment
+            Appointment appointment = webClientBuilder.build()
+                    .get()
+                    .uri("http://Appointment-Service/api/appointment/transactionId/{transactionId}", transactionId)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
+                    .retrieve()
+                    .bodyToMono(Appointment.class)
+                    .block();
+
+            //Save the Approve data
+            if (appointment != null) {
+                Approve approve = new Approve();
+                approve.setAppointmentReason(appointment.getAppointmentReason());
+                approve.setAppointmentType(appointment.getAppointmentType());
+                approve.setDoctorId(appointment.getDoctorId());
+                approve.setAppointmentStatus("Disapproved");
+                approve.setPatientId(appointment.getPatientId());
+                approve.setDateField(appointment.getDateField());
+                approve.setTimeField(appointment.getTimeField());
+                approve.setTransactionId(appointment.getTransactionId());
+                approveRepository.save(approve);
+
+                //Delete after save the data from Appointment
+                webClientBuilder.build()
+                        .delete()
+                        .uri("http://Appointment-Service/api/appointment/delete/{appointmentId}", appointment.getId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
+                        .retrieve()
+                        .bodyToMono(Appointment.class)
+                        .block();
+
+                //Get the data from doctor service
+                Doctors doctors = webClientBuilder.build()
+                        .get()
+                        .uri("http://Doctor-Service/api/doctor/getDoctorById/{doctorId}", appointment.getDoctorId())
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
+                        .retrieve()
+                        .bodyToMono(Doctors.class)
+                        .block();
+
+                if (doctors != null) {
+                    DisapproveData disapproveData = new DisapproveData();
+                    disapproveData.setTransactionId(appointment.getTransactionId());
+                    disapproveData.setDisapproveReason(disapproveRequest.getDisapproveReason());
+                    disapproveData.setPatientEmail(appointment.getPatientEmail());
+                    sendMessageToTopicForDisApproved(disapproveData,userTokenData);
+                }
+            } else {
+                // Throw an exception if the appointment object is null
+                throw new IllegalArgumentException("The appointment object is null.");
+            }
+
+            return new MessageResponse("Appointment Disapproved is Successfully");
+        } catch (WebClientResponseException.NotFound ex) {
+            // Parse the error response to get the message
+            String responseBody = ex.getResponseBodyAsString();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+            // Rethrow the AppointmentNotFoundException from the ApprovalService
+            throw new ApproveNotFoundException(jsonNode.get("message").asText());
+        } catch (WebClientResponseException.ServiceUnavailable ex) {
+            throw new WebClientException("Error occurred while calling the external service: ","Service Unavailable from Appointment Service");
+        }catch (Exception e){
+            throw new ApprovalException("Error occurred while approving the appointment." + e.getMessage());
+        }
+    }
+
+    //TODO: Circuit Beaker
+    //Send notification
+    public void sendMessageToTopicForDisApproved(DisapproveData disapproveData, UserTokenData userTokenData) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            // Convert the AppointmentMessage object to JSON
+            String jsonMessage = objectMapper.writeValueAsString(disapproveData);
+
+            CompletableFuture<SendResult<String, Object>> future = template.send("disapprove", userTokenData.getSub(), jsonMessage);
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            userTokenData.getSub(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenData.getSub(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Error occurred while serializing AppointmentRequest to JSON: {}", e.getMessage());
+            // Handle the exception appropriately, e.g., throw it or log it.
+        }
     }
 
     //FindAll Approve

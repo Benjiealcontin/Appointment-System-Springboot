@@ -69,21 +69,14 @@ opacity: 0.8;
 </head>
 
 <body>
-	 <div class="appointment-notification">
-    <h2>Appointment Request</h2>
+<div class="appointment-notification">
+    <h2>Appointment request has been Cancelled</h2>
     <p><strong>Transaction ID:</strong> ${transactionId}</p>
-    <p><strong>Doctor Name</strong> ${doctorName}</p>
-    <p><strong>Appointment Reason:</strong> ${appointmentReason}</p>
-    <p><strong>Appointment Type:</strong> ${appointmentType}</p>
-    <p><strong>Date:</strong> ${dateField}</p>
-    <p><strong>Time:</strong> ${timeField}</p>
-    <hr>
-    <h3>Patient Information</h3>
-    <p><strong>Name:</strong> ${fullName}</p>
-    <p><strong>Age:</strong> ${age}</p>
-    <p><strong>Gender:</strong> ${gender}</p>
-    <p><strong>Email:</strong> ${email2}</p>
-    <p><strong>Phone:</strong> ${phoneNumber}</p>
+    <br>
+    <p>Cancel Reason: ${cancelReason}</p>
+    <br>
+    <br>
+    <h2>Sorry the Patient is cancelled the Appointment Request!</h2>
   </div>
 </body>
 </script>

@@ -6,11 +6,20 @@ import com.appointment.CancelService.Entity.Cancel;
 import com.appointment.CancelService.Exception.CancelException;
 import com.appointment.CancelService.Exception.WebClientException;
 import com.appointment.CancelService.Repository.CancelRepository;
+import com.appointment.CancelService.Request.CancelDataForNotification;
+import com.appointment.CancelService.Request.CancelRequest;
+import com.appointment.CancelService.Request.UserTokenData;
 import com.appointment.CancelService.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -18,26 +27,30 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
+@Slf4j
 public class CancelService {
 
     private final WebClient.Builder webClientBuilder;
 
+    @Autowired
+    private KafkaTemplate<String,Object> template;
     private final CancelRepository cancelRepository;
     public CancelService(WebClient.Builder webClientBuilder, CancelRepository cancelRepository) {
         this.webClientBuilder = webClientBuilder;
         this.cancelRepository = cancelRepository;
     }
 
-    public MessageResponse cancelAppointment(String transactionId, String subject, String bearerToken) throws JsonProcessingException {
-        try {
 
             /*TODO:
             -Circuit breaker
             -TimeLimiter
             */
 
+    public MessageResponse cancelAppointment(String transactionId, UserTokenData userTokenData, String bearerToken, CancelRequest cancelRequest) throws JsonProcessingException {
+        try {
             // Get the data from Appointment
             Appointment appointment = webClientBuilder.build()
                     .get()
@@ -48,7 +61,6 @@ public class CancelService {
                     .block();
 
             if (appointment != null) {
-                if(Objects.equals(subject, appointment.getPatientId())){
                     Cancel cancel = new Cancel();
                     cancel.setAppointmentReason(appointment.getAppointmentReason());
                     cancel.setAppointmentType(appointment.getAppointmentType());
@@ -68,10 +80,13 @@ public class CancelService {
                             .retrieve()
                             .bodyToMono(Appointment.class)
                             .block();
-                }else {
-                    // Throw an exception if the appointment object is null
-                    throw new IllegalArgumentException("The patientId and patientId from the database are not equal.");
-                }
+
+                    CancelDataForNotification cancelData = new CancelDataForNotification();
+                    cancelData.setTransactionId(appointment.getTransactionId());
+                    cancelData.setDoctorEmail(appointment.getDoctorEmail());
+                    cancelData.setCancelReason(cancelRequest.getCancelReason());
+
+                    sendMessageToTopic(cancelData,userTokenData);
             } else {
                 // Throw an exception if the appointment object is null
                 throw new IllegalArgumentException("The appointment object is null.");
@@ -94,8 +109,31 @@ public class CancelService {
         }
     }
 
-    //TODO: Producer kafka
+    //TODO: Create Producer kafka
 
+    public void sendMessageToTopic(CancelDataForNotification cancelDataForNotification,UserTokenData userTokenData) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+
+            // Convert the AppointmentMessage object to JSON
+            String jsonMessage = objectMapper.writeValueAsString(cancelDataForNotification);
+
+            CompletableFuture<SendResult<String, Object>> future = template.send("cancel", userTokenData.getSub(), jsonMessage);
+            future.whenComplete((result, ex) -> {
+                if (ex == null) {
+                    RecordMetadata metadata = result.getRecordMetadata();
+                    log.info("Sent message with key=[{}] and value=[{}] to partition=[{}] with offset=[{}]",
+                            userTokenData.getSub(), jsonMessage, metadata.partition(), metadata.offset());
+                } else {
+                    log.error("Unable to send message with key=[{}] and value=[{}] due to: {}", userTokenData.getSub(), jsonMessage, ex.getMessage());
+                }
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Error occurred while serializing AppointmentRequest to JSON: {}", e.getMessage());
+            // Handle the exception appropriately, e.g., throw it or log it.
+        }
+    }
     //FindAll
     public List<Cancel> getAllCancelAppointments() {
         List<Cancel> approves = cancelRepository.findAll();

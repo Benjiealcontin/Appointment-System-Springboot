@@ -5,8 +5,11 @@ import com.appointment.Approve_Service.Entity.Approve;
 import com.appointment.Approve_Service.Exception.ApproveNotFoundException;
 import com.appointment.Approve_Service.Exception.WebClientException;
 import com.appointment.Approve_Service.Request.ApproveRequest;
+import com.appointment.Approve_Service.Request.DisapproveRequest;
+import com.appointment.Approve_Service.Request.UserTokenData;
 import com.appointment.Approve_Service.Response.MessageResponse;
 import com.appointment.Approve_Service.Service.ApproveService;
+import com.appointment.Approve_Service.Service.TokenDecodeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,16 +23,39 @@ public class ApproveController {
 
     private final ApproveService approveService;
 
-    public ApproveController(ApproveService approveService) {
+    private final TokenDecodeService tokenService;
+
+    public ApproveController(ApproveService approveService, TokenDecodeService tokenDecodeService) {
         this.approveService = approveService;
+        this.tokenService = tokenDecodeService;
     }
 
 
     //Approve Appointment
     @PostMapping("/{transactionId}")
-    public ResponseEntity<?> approveAppointment(@PathVariable String transactionId, @RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> approveAppointment(@PathVariable String transactionId, @RequestHeader("Authorization") String bearerToken) {
         try {
-            MessageResponse response = approveService.approveAppointment(transactionId, token);
+            String token = tokenService.extractToken(bearerToken);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token);
+
+            MessageResponse response = approveService.approveAppointment(transactionId, bearerToken, userTokenData);
+            return ResponseEntity.ok(response);
+        } catch (AppointmentNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (WebClientException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/disapprove/{transactionId}")
+    public ResponseEntity<?> disapproveAppointment(@RequestBody DisapproveRequest disapproveRequest, @PathVariable String transactionId, @RequestHeader("Authorization") String bearerToken) {
+        try {
+            String token = tokenService.extractToken(bearerToken);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token);
+
+            MessageResponse response = approveService.disapproveAppointment(transactionId, bearerToken, userTokenData, disapproveRequest);
             return ResponseEntity.ok(response);
         } catch (AppointmentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -80,6 +106,7 @@ public class ApproveController {
         }
     }
 
+    //Update Approve details
     @PutMapping("/update/{approveId}")
     public ResponseEntity<?> updateApprove(@PathVariable Long approveId, @RequestBody ApproveRequest approveRequest) {
         try {

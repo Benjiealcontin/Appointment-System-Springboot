@@ -1,11 +1,13 @@
-package com.appointment.CancelService.Service;
+package com.appointment.Approve_Service.Service;
 
 
-import com.appointment.CancelService.Exception.InvalidTokenException;
-import com.appointment.CancelService.Request.UserTokenData;
+
+import com.appointment.Approve_Service.Exception.InvalidTokenException;
+import com.appointment.Approve_Service.Request.UserTokenData;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class TokenDecodeService {
@@ -17,7 +19,7 @@ public class TokenDecodeService {
         return bearerToken.substring(7);
     }
 
-
+    //TODO: Address
     public UserTokenData decodeUserToken(String token) {
         if (token != null) {
             // Decode the JWT token

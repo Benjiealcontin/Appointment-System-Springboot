@@ -14,6 +14,8 @@ public class AppointmentData {
     private String transactionId;
     private String PatientId;
     private String doctorName;
+    private String doctorEmail;
+    private String patientEmail;
     private String appointmentReason;
     private String appointmentType;
     private String appointmentStatus;

@@ -1,6 +1,5 @@
 package com.appointment.AppointmentService.Request;
 
-import com.appointment.AppointmentService.Entity.Appointment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
