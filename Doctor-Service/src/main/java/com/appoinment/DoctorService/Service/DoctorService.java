@@ -70,7 +70,7 @@ public class DoctorService {
     }
 
     //FindBySpecialization
-    public Doctors getDoctorsBySpecialization(String doctorSpecialization){
+    public Doctors getDoctorsBySpecialization(String doctorSpecialization) {
         Optional<Doctors> doctorOptional = doctorsRepository.findBySpecializations(doctorSpecialization);
         return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Specialization " + doctorSpecialization + " not found."));
     }
@@ -103,4 +103,5 @@ public class DoctorService {
         // Save the updated doctor to the database
         doctorsRepository.save(existingDoctor);
     }
+
 }

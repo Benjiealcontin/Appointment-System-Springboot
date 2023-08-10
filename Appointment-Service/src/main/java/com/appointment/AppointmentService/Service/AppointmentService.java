@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -44,8 +44,9 @@ public class AppointmentService {
         this.webClientBuilder = webClientBuilder;
     }
 
-    //TODO: Circuit Beaker and time limiter
+
     //Add Appointment
+    @CircuitBreaker(name = "addAppointment", fallbackMethod = "AppointmentMethodFallBack")
     public MessageResponse createAppointment(AppointmentRequest appointmentRequest,String bearerToken,UserTokenData userTokenData) throws JsonProcessingException {
         try {
             Doctors doctor = webClientBuilder.build()
@@ -115,8 +116,13 @@ public class AppointmentService {
         }
     }
 
-    //TODO: Circuit Beaker
+    private MessageResponse AppointmentMethodFallBack(AppointmentRequest appointmentRequest,String bearerToken,UserTokenData userTokenData,Throwable throwable) {
+        log.warn("Circuit breaker fallback: Unable to create appointment. Error: {}", throwable.getMessage());
+        return new MessageResponse("Appointment creation is currently unavailable. Please try again later.");
+    }
+
     //Send notification
+    @CircuitBreaker(name = "notification", fallbackMethod = "kafkaFallBackMethod")
     public void sendMessageToTopic(AppointmentData appointmentData, UserTokenData userTokenData) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -144,6 +150,10 @@ public class AppointmentService {
         }
     }
 
+    public void kafkaFallBackMethod(AppointmentData appointmentData, UserTokenData userTokenData) {
+        log.warn("Circuit breaker fallback: Unable to send message to Kafka topic.");
+    }
+
     //FindAll
     public List<Appointment> getAllAppointments() {
         List<Appointment> appointments = appointmentRepository.findAll();
@@ -157,6 +167,15 @@ public class AppointmentService {
     public Appointment getAppointmentById(Long appointmentId) {
         Optional<Appointment> appointmentOptional = appointmentRepository.findById(appointmentId);
         return appointmentOptional.orElseThrow(() -> new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found."));
+    }
+
+    //FindByDoctorId
+    public List<Appointment> getAppointmentsByDoctorId(Long doctorId) {
+        List<Appointment> appointmentList = appointmentRepository.findByDoctorId(doctorId);
+        if (appointmentList.isEmpty()) {
+            throw new AppointmentNotFoundException("Doctor with ID " + doctorId + " no appointment data.");
+        }
+        return appointmentList;
     }
 
     //FindByTransactionId

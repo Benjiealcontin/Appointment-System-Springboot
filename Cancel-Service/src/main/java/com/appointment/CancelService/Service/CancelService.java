@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,11 +45,7 @@ public class CancelService {
     }
 
 
-            /*TODO:
-            -Circuit breaker
-            -TimeLimiter
-            */
-
+    @CircuitBreaker(name = "cancelAppointment", fallbackMethod = "cancelAppointmentFallback")
     public MessageResponse cancelAppointment(String transactionId, UserTokenData userTokenData, String bearerToken, CancelRequest cancelRequest) throws JsonProcessingException {
         try {
             // Get the data from Appointment
@@ -109,8 +106,12 @@ public class CancelService {
         }
     }
 
-    //TODO: Create Producer kafka
+    public MessageResponse cancelAppointmentFallback(String transactionId, UserTokenData userTokenData, String bearerToken, CancelRequest cancelRequest, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to cancel appointment. Error: {}", t.getMessage());
+        return new MessageResponse("Appointment cancellation is currently unavailable. Please try again later.");
+    }
 
+    @CircuitBreaker(name = "sendMessageToTopic", fallbackMethod = "sendMessageToTopicFallback")
     public void sendMessageToTopic(CancelDataForNotification cancelDataForNotification,UserTokenData userTokenData) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -133,6 +134,10 @@ public class CancelService {
             log.error("Error occurred while serializing AppointmentRequest to JSON: {}", e.getMessage());
             // Handle the exception appropriately, e.g., throw it or log it.
         }
+    }
+    public void sendMessageToTopicFallback(CancelDataForNotification cancelDataForNotification, UserTokenData userTokenData, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to send message to Kafka topic. Error: {}", t.getMessage());
+
     }
     //FindAll
     public List<Cancel> getAllCancelAppointments() {

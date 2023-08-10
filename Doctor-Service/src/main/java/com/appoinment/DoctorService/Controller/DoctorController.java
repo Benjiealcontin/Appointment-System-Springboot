@@ -130,5 +130,4 @@ public class DoctorController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new MessageResponse("An error occurred: " + e.getMessage()));
         }
     }
-
 }

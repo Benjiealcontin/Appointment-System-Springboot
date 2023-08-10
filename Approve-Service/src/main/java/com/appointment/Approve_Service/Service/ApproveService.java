@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,14 +46,10 @@ public class ApproveService {
         this.webClientBuilder = webClientBuilder;
     }
 
-    /*
-   TODO:
-   - Add Circuit Breaker
-   - Add time limiter
-   - Repair the exception of Webclient WebClientResponseException.NotFound ex
-    */
+
 
     //Approve Appointment
+    @CircuitBreaker(name = "approveAppointment", fallbackMethod = "ApproveMethodFallBack")
     public MessageResponse approveAppointment(String transactionId, String bearerToken, UserTokenData userTokenData) throws JsonProcessingException {
        try{
            //Get the data from Appointment
@@ -106,7 +103,7 @@ public class ApproveService {
                    approveData.setAppointmentType(appointment.getAppointmentType());
                    approveData.setPatientEmail(appointment.getPatientEmail());
 
-                   sendMessageToTopic(approveData,userTokenData);
+                   sendMessageToTopicForApproved(approveData,userTokenData);
                }
            } else {
                // Throw an exception if the appointment object is null
@@ -129,10 +126,14 @@ public class ApproveService {
        }
     }
 
+    public MessageResponse approveMethodFallback(String transactionId, String bearerToken, UserTokenData userTokenData, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to approve appointment. Error: {}", t.getMessage());
+        return new MessageResponse("Appointment approval is currently unavailable. Please try again later.");
+    }
 
-    //TODO: Circuit Beaker
     //Send notification
-    public void sendMessageToTopic(ApproveData approveData, UserTokenData userTokenData) {
+    @CircuitBreaker(name = "sendMessageToTopicForApproved", fallbackMethod = "sendMessageToTopicForApproved")
+    public void sendMessageToTopicForApproved(ApproveData approveData, UserTokenData userTokenData) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());
@@ -156,6 +157,11 @@ public class ApproveService {
         }
     }
 
+    public void sendMessageToTopicForApprovedFallback(ApproveData approveData, UserTokenData userTokenData, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to send approved message to topic. Error: {}", t.getMessage());
+    }
+
+    @CircuitBreaker(name = "disapproveAppointment", fallbackMethod = "DisapproveMethodFallBack")
     public MessageResponse disapproveAppointment(String transactionId, String bearerToken, UserTokenData userTokenData, DisapproveRequest disapproveRequest) throws JsonProcessingException {
         try{
             //Get the data from Appointment
@@ -226,8 +232,14 @@ public class ApproveService {
         }
     }
 
-    //TODO: Circuit Beaker
+    public MessageResponse DisapproveMethodFallBack(String transactionId, String bearerToken, UserTokenData userTokenData, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to disapprove appointment. Error: {}", t.getMessage());
+        return new MessageResponse("Appointment disapproval is currently unavailable. Please try again later.");
+    }
+
+
     //Send notification
+    @CircuitBreaker(name = "sendMessageToTopicForDisApproved", fallbackMethod = "sendMessageToTopicForDisApprovedFallBackMethod")
     public void sendMessageToTopicForDisApproved(DisapproveData disapproveData, UserTokenData userTokenData) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -252,6 +264,10 @@ public class ApproveService {
         }
     }
 
+    public void sendMessageToTopicForDisApprovedFallBackMethod(ApproveData approveData, UserTokenData userTokenData, Throwable t) {
+        log.warn("Circuit breaker fallback: Unable to send approved message to topic. Error: {}", t.getMessage());
+    }
+
     //FindAll Approve
     public List<Approve> getAllApproveAppointments() {
         List<Approve> approves = approveRepository.findAll();
@@ -259,6 +275,24 @@ public class ApproveService {
             throw new ApproveNotFoundException("No approves found.");
         }
         return approves;
+    }
+
+    //FindAllApprovedRequestOfDoctor
+    public List<Approve> getAllApproveAppointmentByDoctorId(Long doctorId){
+        List<Approve> approveList = approveRepository.findByDoctorIdAndAppointmentStatus(doctorId,"Approved");
+        if (approveList.isEmpty()) {
+            throw new ApproveNotFoundException("Doctor with ID " + doctorId + " no approved data.");
+        }
+        return approveList;
+    }
+
+    //FindAllDisapprovedRequestOfDoctor
+    public List<Approve> getAllDisapproveAppointmentByDoctorId(Long doctorId){
+        List<Approve> disapproveList = approveRepository.findByDoctorIdAndAppointmentStatus(doctorId,"Disapproved");
+        if (disapproveList.isEmpty()) {
+            throw new ApproveNotFoundException("Doctor with ID " + doctorId + " no disapproved data.");
+        }
+        return disapproveList;
     }
 
     //FindById

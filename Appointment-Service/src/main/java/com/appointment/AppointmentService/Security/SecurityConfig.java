@@ -20,7 +20,6 @@ public class SecurityConfig {
 
     public static final String ADMIN = "client_admin";
     public static final String USER = "client_user";
-
     public static final String DOCTOR = "client_doctor";
 
     @Bean
@@ -29,7 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST,"api/appointment/add").hasAnyRole(ADMIN,USER)
                         .requestMatchers(HttpMethod.GET,"api/appointment/getAllAppointment"
-                        ,"api/appointment/getById/*").hasRole(ADMIN)
+                        ,"api/appointment/getById/*","api/appointment/getByDoctorId/*").hasAnyRole(ADMIN,DOCTOR)
                         .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"api/appointment/transactionId/*").hasAnyRole(DOCTOR,USER)
                         .requestMatchers(HttpMethod.DELETE,"api/appointment/delete/*").hasAnyRole(ADMIN,DOCTOR,USER)

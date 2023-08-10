@@ -92,6 +92,32 @@ public class ApproveController {
         }
     }
 
+    //FindAllApprovedRequestOfDoctor
+    @GetMapping("/approved/{doctorId}")
+    public ResponseEntity<?> getAllApproveOfDoctor(@PathVariable Long doctorId) {
+        try {
+            List<Approve> approveList = approveService.getAllApproveAppointmentByDoctorId(doctorId);
+            return ResponseEntity.ok(approveList);
+        } catch (ApproveNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //FindAllDisapprovedRequestOfDoctor
+    @GetMapping("/disapproved/{doctorId}")
+    public ResponseEntity<?> getAllDisapproveOfDoctor(@PathVariable Long doctorId) {
+        try {
+            List<Approve> disapproveList = approveService.getAllDisapproveAppointmentByDoctorId(doctorId);
+            return ResponseEntity.ok(disapproveList);
+        } catch (ApproveNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
 
     //Delete by Id
     @DeleteMapping("/delete/{approveId}")

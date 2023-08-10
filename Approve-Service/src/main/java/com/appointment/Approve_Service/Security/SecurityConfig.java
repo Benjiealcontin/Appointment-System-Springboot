@@ -24,7 +24,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST,"api/approve/*","api/approve/disapprove/*").hasRole(DOCTOR)
-                        .requestMatchers(HttpMethod.GET,"/api/approve/getAllApprove","/api/approve/findById/*").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET,"/api/approve/getAllApprove","/api/approve/findById/*","api/approved/*").hasAnyRole(ADMIN,DOCTOR)
                         .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE,"api/approve/delete/*").hasAnyRole(ADMIN,DOCTOR)
                         .requestMatchers(HttpMethod.PUT,"api/approve/update/*").hasAnyRole(ADMIN,DOCTOR)

@@ -5,7 +5,6 @@ import com.appointment.AppointmentService.Exception.AppointmentHoursMismatchExce
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.AppointmentService.Exception.InvalidTokenException;
 import com.appointment.AppointmentService.Exception.WebClientException;
-import com.appointment.AppointmentService.Request.AppointmentData;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
 import com.appointment.AppointmentService.Request.UserTokenData;
 import com.appointment.AppointmentService.Response.MessageResponse;
@@ -86,6 +85,19 @@ public class AppointmentController {
         try {
             Appointment appointment = appointmentService.getAppointmentById(appointmentId);
             return ResponseEntity.ok(appointment);
+        } catch (AppointmentNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //GetAllPendingAppointmentOfDoctorByDoctorId
+    @GetMapping("/getByDoctorId/{doctorId}")
+    public ResponseEntity<?> getAppointmentsByDoctorId(@PathVariable Long doctorId) {
+        try {
+            List<Appointment> appointmentList =  appointmentService.getAppointmentsByDoctorId(doctorId);
+            return ResponseEntity.ok(appointmentList);
         } catch (AppointmentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {

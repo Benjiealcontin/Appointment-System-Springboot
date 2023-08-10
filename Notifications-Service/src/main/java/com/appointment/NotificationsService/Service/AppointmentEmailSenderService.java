@@ -29,10 +29,6 @@ public class AppointmentEmailSenderService {
         this.mailSender = mailSender;
     }
 
-    /*
-    TODO:
-    - create function to approve
-     */
     public void sendAppointmentConfirmationEmail(String patientEmail, String doctorEmail, Map<String, Object> model) throws MessagingException, TemplateException, IOException {
 
         MimeMessage message1 = mailSender.createMimeMessage();
