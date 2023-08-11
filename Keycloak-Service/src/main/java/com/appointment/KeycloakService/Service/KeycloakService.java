@@ -1,22 +1,29 @@
 package com.appointment.KeycloakService.Service;
 
+import com.appointment.KeycloakService.Exception.CustomConflictException;
 import com.appointment.KeycloakService.Exception.KeycloakException;
-import com.appointment.KeycloakService.Request.FormRequest;
+import com.appointment.KeycloakService.Request.*;
 import com.appointment.KeycloakService.Response.TokenResponse;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.google.common.net.HttpHeaders;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.Date;
+import java.util.List;
+
 
 @Service
 public class KeycloakService {
 
     private final WebClient.Builder webClientBuilder;
 
+    @Autowired
     public KeycloakService(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
     }
@@ -30,7 +37,6 @@ public class KeycloakService {
             throw new IllegalArgumentException("Invalid Bearer token");
         }
     }
-
 
     public void decodeAndPrintToken(String token) {
         if (token != null) {
@@ -47,10 +53,11 @@ public class KeycloakService {
         }
     }
 
+    //Get Access Token
     public Mono<String> getToken(FormRequest formRequest) {
         // Replace "yourClientId" and "yourClientSecret" with the actual values
-        String clientId = "Appointment-System-Client";
-        String clientSecret = "4wcMr3Tcfzion3DpINSccGwvs4Hd3ioM";
+        String clientId = "Admin-clients";
+        String clientSecret = "RERxD0VY1VrzYNZCpTv5Vy8TouAm5qmr";
         String grantType = "password";
 
         return webClientBuilder.build()
@@ -80,6 +87,137 @@ public class KeycloakService {
                     System.out.println("Token: " + accessToken);
                 })
                 .map(TokenResponse::getAccess_token);
+    }
 
+    //Create Doctor
+    public void createDoctor(Doctor doctor, String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .post()
+                .uri("http://localhost:8081/admin/realms/Appointment/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .body(BodyInserters.fromValue(doctor))
+                .retrieve()
+                .bodyToMono(Void.class);
+        try {
+            response.block(); // This blocks until the request completes
+        } catch (Exception ex) {
+            throw new CustomConflictException("User exists with same username");
+        }
+    }
+
+    //Create Patient
+    public void createPatient(Patient patient, String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .post()
+                .uri("http://localhost:8081/admin/realms/Appointment/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .body(BodyInserters.fromValue(patient))
+                .retrieve()
+                .bodyToMono(Void.class);
+
+            response.block(); // This blocks until the request completes
+    }
+
+    //Get User
+    public Patient getUser(String sub, String bearerToken) {
+        return webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",sub)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToMono(Patient.class).block();
+    }
+
+    //Get Doctor
+    public Patient getDoctor(String sub, String bearerToken) {
+        return webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",sub)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToMono(Patient.class).block();
+    }
+
+    //Get All Doctor
+    public List<GetAllDoctor> getDoctorsInGroup(String bearerToken) {
+        String groupId = "f9e44dd8-1f49-4e38-8474-25a3cbdf71e0";
+
+        return webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8081/admin/realms/Appointment/groups/"+ groupId +"/members")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToFlux(GetAllDoctor.class)
+                .collectList()
+                .block();
+    }
+
+    //Get All Patients
+    public List<GetAllPatient> getPatientsInGroup(String bearerToken) {
+        String groupId = "fdd17119-a1c5-4b21-a6b9-75fcfaf0ac5e";
+
+        return webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8081/admin/realms/Appointment/groups/"+ groupId +"/members")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToFlux(GetAllPatient.class)
+                .collectList()
+                .block();
+    }
+
+
+
+    //Delete User
+    public void deleteUser(String sub, String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .delete()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",sub)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToMono(Void.class);
+
+            response.block();
+    }
+
+    //Delete Doctor
+    public void deleteDoctor(String sub, String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .delete()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",sub)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToMono(Void.class);
+        response.block();
+    }
+
+    //Update Doctor
+    public void updateDoctor(String userId, Doctor updatedDoctor,String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .put()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .body(BodyInserters.fromValue(updatedDoctor))
+                .retrieve()
+                .bodyToMono(Void.class);
+
+        response.block();
+    }
+
+    //Update Patient
+    public void updatePatient(String userId, Patient updatedPatient,String bearerToken) {
+        Mono<Void> response = webClientBuilder.build()
+                .put()
+                .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .body(BodyInserters.fromValue(updatedPatient))
+                .retrieve()
+                .bodyToMono(Void.class);
+
+        response.block();
     }
 }
