@@ -131,13 +131,13 @@ public class KeycloakService {
     }
 
     //Get Doctor
-    public Patient getDoctor(String sub, String bearerToken) {
+    public Doctor getDoctor(String sub, String bearerToken) {
         return webClientBuilder.build()
                 .get()
                 .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",sub)
                 .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .retrieve()
-                .bodyToMono(Patient.class).block();
+                .bodyToMono(Doctor.class).block();
     }
 
     //Get All Doctor

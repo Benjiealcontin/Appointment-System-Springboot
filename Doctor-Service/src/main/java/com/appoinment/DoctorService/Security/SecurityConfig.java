@@ -27,11 +27,11 @@ public class SecurityConfig {
                 authorizeHttpRequests(auth ->
                 {
                     auth.requestMatchers(HttpMethod.GET, "/actuator/*").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/doctor/findAll"
+                    auth.requestMatchers(HttpMethod.GET, "/api/doctor/getAllDoctor"
                     ,"/api/doctor/getDoctorById/*","/api/doctor/findByName/*","/api/doctor/findBySpecialization/*").hasAnyRole(ADMIN,USER,DOCTOR);
-                    auth.requestMatchers(HttpMethod.POST, "/api/doctor/add").hasRole(ADMIN);
-                    auth.requestMatchers(HttpMethod.DELETE, "/api/doctor/delete/*").hasRole(ADMIN);
-                    auth.requestMatchers(HttpMethod.PUT, "/api/doctor/update/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.POST, "/api/doctor/addDoctor").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/deleteDoctor/delete/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.PUT, "/api/update-doctor/*").hasRole(ADMIN);
                     auth.anyRequest().authenticated();
                 });
 

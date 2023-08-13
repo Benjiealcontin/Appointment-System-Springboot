@@ -39,8 +39,8 @@ public class KeycloakController {
             return ResponseEntity.ok("Patient created successfully");
     }
 
-    //Get User
-    @GetMapping("/getUser/{sub}")
+    //Get Patient
+    @GetMapping("/getPatient/{sub}")
     public ResponseEntity<?> getUser(@PathVariable String sub, @RequestHeader("Authorization") String bearerToken) {
         Patient user = keycloakService.getUser(sub,bearerToken);
         if (user != null) {
@@ -53,7 +53,7 @@ public class KeycloakController {
     //Get Doctor
     @GetMapping("/getDoctor/{sub}")
     public ResponseEntity<?> getDoctor(@PathVariable String sub, @RequestHeader("Authorization") String bearerToken) {
-        Patient user = keycloakService.getDoctor(sub,bearerToken);
+        Doctor user = keycloakService.getDoctor(sub,bearerToken);
         if (user != null) {
             return ResponseEntity.ok(user);
         } else {
@@ -83,14 +83,14 @@ public class KeycloakController {
         }
     }
 
-    //Delete User
+    //Delete Patient
     @DeleteMapping("/deletePatient/{sub}")
     public ResponseEntity<String> deleteUser(@PathVariable String sub, @RequestHeader("Authorization") String bearerToken) {
             keycloakService.deleteUser(sub,bearerToken);
             return ResponseEntity.ok("User deleted successfully");
     }
 
-    //Delete User
+    //Delete Doctor
     @DeleteMapping("/deleteDoctor/{sub}")
     public ResponseEntity<String> deleteDoctor(@PathVariable String sub, @RequestHeader("Authorization") String bearerToken) {
         keycloakService.deleteDoctor(sub,bearerToken);
@@ -104,6 +104,7 @@ public class KeycloakController {
         return "home";
     }
 
+    //Get Access Token
     @PostMapping("/get-token")
     public Mono<String> getToken(@RequestBody FormRequest formRequest) {
         return keycloakService.getToken(formRequest)

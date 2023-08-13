@@ -1,107 +1,138 @@
 package com.appoinment.DoctorService.Service;
 
 
-import com.appoinment.DoctorService.Entity.Doctors;
+
 import com.appoinment.DoctorService.Exception.AddDoctorException;
+
 import com.appoinment.DoctorService.Exception.DoctorsNotFoundException;
-import com.appoinment.DoctorService.Repository.DoctorsRepository;
-import com.appoinment.DoctorService.Request.DoctorsRequest;
-import com.appoinment.DoctorService.Response.MessageResponse;
+import com.appoinment.DoctorService.Request.Doctor;
 
+
+import com.appoinment.DoctorService.Request.GetAllDoctor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.net.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
+
 
 @Service
 public class DoctorService {
 
-    private final DoctorsRepository doctorsRepository;
+    private final WebClient.Builder webClientBuilder;
 
-    public DoctorService(DoctorsRepository doctorsRepository) {
-        this.doctorsRepository = doctorsRepository;
+    public DoctorService(WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
     }
 
     //Add doctor
-    public MessageResponse addDoctor(DoctorsRequest doctorsRequest) {
-        Doctors doctors = new Doctors();
-        doctors.setDoctorName(doctorsRequest.getDoctorName());
-        doctors.setLocation(doctorsRequest.getLocation());
-        doctors.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
-        doctors.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
-        doctors.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
-        doctors.setContactInformation(new ArrayList<>(doctorsRequest.getContactInformation()));
-        doctors.setProfessionalExperience(new ArrayList<>(doctorsRequest.getProfessionalExperience()));
-
+    public void createDoctor(Doctor doctor, String bearerToken) {
         try {
-            // Save the doctor in the local database
-            doctorsRepository.save(doctors);
-            return new MessageResponse("Doctor Added Successfully");
+            webClientBuilder.build()
+                    .post()
+                    .uri("http://localhost:8081/admin/realms/Appointment/users")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .body(BodyInserters.fromValue(doctor))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block(); // This blocks until the request completes
+
+        } catch (WebClientResponseException e) {
+            String responseBody = e.getResponseBodyAsString();
+
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+                if (jsonNode.isObject()) {
+                    if (jsonNode.has("errorMessage")) {
+                        String errorMessage = jsonNode.get("errorMessage").asText();
+                        throw new AddDoctorException("Keycloak API Error: " + errorMessage);
+                    }
+                }
+
+                throw new AddDoctorException("An error occurred: " + responseBody);
+            } catch (IOException ex) {
+                throw new AddDoctorException("An error occurred while parsing the response: " + responseBody);
+            }
         } catch (Exception e) {
-            throw new AddDoctorException("Error occurred while adding the doctor: " + e.getMessage(), e);
+            throw new AddDoctorException("An unexpected error occurred: " + e.getMessage());
         }
     }
 
-    //Check if the doctor is Exist
-    public boolean checkIfDoctorExists(String doctorName) {
-        return doctorsRepository.existsByDoctorName(doctorName);
+    //Get Doctor by I'd
+    public Doctor getDoctor(String userId, String bearerToken) {
+        try {
+            return webClientBuilder.build()
+                    .get()
+                    .uri("http://localhost:8081/admin/realms/Appointment/users/{id}", userId)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .bodyToMono(Doctor.class)
+                    .block();
+        } catch (WebClientResponseException.NotFound e) {
+            throw new DoctorsNotFoundException("Doctor with ID " + userId + " not found.");
+        }
     }
 
-    //FindAll
-    public List<Doctors> getAllDoctors() {
-        List<Doctors> doctors = doctorsRepository.findAll();
-        if (doctors.isEmpty()) {
-            throw new DoctorsNotFoundException("No doctors found.");
+
+    //Get All Doctors
+    public List<GetAllDoctor> getDoctorsInGroup(String bearerToken) {
+        String groupId = "f9e44dd8-1f49-4e38-8474-25a3cbdf71e0";
+
+        List<GetAllDoctor> doctors =  webClientBuilder.build()
+                .get()
+                .uri("http://localhost:8081/admin/realms/Appointment/groups/" + groupId + "/members")
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                .retrieve()
+                .bodyToFlux(GetAllDoctor.class)
+                .collectList()
+                .block();
+
+        if (doctors == null || doctors.isEmpty()) {
+            throw new DoctorsNotFoundException("No doctors found in the specified group.");
         }
+
         return doctors;
     }
 
-    //FindById
-    public Doctors getDoctorById(Long doctorId) {
-        Optional<Doctors> doctorOptional = doctorsRepository.findById(doctorId);
-        return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found."));
-    }
-
-    //FindByDoctorName
-    public Doctors getDoctorByName(String doctorName) {
-        Optional<Doctors> doctorOptional = doctorsRepository.findByDoctorName(doctorName);
-        return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Doctor name " + doctorName + " not found."));
-    }
-
-    //FindBySpecialization
-    public Doctors getDoctorsBySpecialization(String doctorSpecialization) {
-        Optional<Doctors> doctorOptional = doctorsRepository.findBySpecializations(doctorSpecialization);
-        return doctorOptional.orElseThrow(() -> new DoctorsNotFoundException("Doctor with Specialization " + doctorSpecialization + " not found."));
-    }
-
     //Delete Doctor
-    public void deleteDoctor(Long doctorId) {
-        // Check if the doctor exists in the database
-        if (!doctorsRepository.existsById(doctorId)) {
-            throw new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found.");
+    public void deleteDoctor(String userId, String bearerToken) {
+        try {
+            webClientBuilder.build()
+                    .delete()
+                    .uri("http://localhost:8081/admin/realms/Appointment/users/{id}", userId)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (WebClientResponseException.NotFound e) {
+            throw new DoctorsNotFoundException("Doctor with ID " + userId + " not found.");
         }
-        // Delete the doctor from the database
-        doctorsRepository.deleteById(doctorId);
     }
 
-    //Update doctors
-    public void updateDoctor(Long doctorId, DoctorsRequest doctorsRequest) {
-        // Check if the doctor with the given ID exists in the database
-        Doctors existingDoctor = doctorsRepository.findById(doctorId)
-                .orElseThrow(() -> new DoctorsNotFoundException("Doctor with ID " + doctorId + " not found."));
 
-        // Update the doctor's fields with the new data from the request
-        existingDoctor.setDoctorName(doctorsRequest.getDoctorName());
-        existingDoctor.setLocation(doctorsRequest.getLocation());
-        existingDoctor.setQualifications(new ArrayList<>(doctorsRequest.getQualifications()));
-        existingDoctor.setWorkingHours(new ArrayList<>(doctorsRequest.getWorkingHours()));
-        existingDoctor.setSpecializations(new ArrayList<>(doctorsRequest.getSpecializations()));
-        existingDoctor.setContactInformation(new ArrayList<>(doctorsRequest.getContactInformation()));
-        existingDoctor.setProfessionalExperience(new ArrayList<>(doctorsRequest.getProfessionalExperience()));
-
-        // Save the updated doctor to the database
-        doctorsRepository.save(existingDoctor);
+    //Update Doctor Info
+    public void updateDoctor(String userId, Doctor updatedDoctor,String bearerToken) {
+        try {
+            webClientBuilder.build()
+                    .put()
+                    .uri("http://localhost:8081/admin/realms/Appointment/users/{id}",userId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, bearerToken)
+                    .body(BodyInserters.fromValue(updatedDoctor))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+        } catch (WebClientResponseException.NotFound e) {
+            throw new DoctorsNotFoundException("Doctor with ID " + userId + " not found.");
+        }
     }
-
 }
