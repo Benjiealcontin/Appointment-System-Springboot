@@ -18,6 +18,7 @@
         <module>Approve-Service</module>
         <module>Notifications-Service</module>
         <module>Cancel-Service</module>
+        <module>Patient-Service</module>
     </modules>
     <properties>
         <maven.compiler.source>20</maven.compiler.source>

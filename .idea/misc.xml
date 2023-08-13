@@ -29,6 +29,7 @@
         <option value="$PROJECT_DIR$/Cancellation-Service/pom.xml" />
         <option value="$PROJECT_DIR$/demo/pom.xml" />
         <option value="$PROJECT_DIR$/Cancel-Service/pom.xml" />
+        <option value="$PROJECT_DIR$/Patient-Service/pom.xml" />
       </list>
     </option>
     <option name="ignoredFiles">

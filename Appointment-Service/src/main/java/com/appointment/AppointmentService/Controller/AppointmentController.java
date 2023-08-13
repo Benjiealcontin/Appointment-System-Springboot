@@ -1,5 +1,6 @@
 package com.appointment.AppointmentService.Controller;
 
+import com.appoinment.DoctorService.Response.ErrorResponse;
 import com.appointment.AppointmentService.Entity.Appointment;
 import com.appointment.AppointmentService.Exception.AppointmentHoursMismatchException;
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
@@ -11,8 +12,11 @@ import com.appointment.AppointmentService.Response.MessageResponse;
 import com.appointment.AppointmentService.Service.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/appointment")
@@ -33,7 +37,16 @@ public class AppointmentController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest appointmentRequest, @RequestHeader("Authorization") String bearerToken) {
+    public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest appointmentRequest,
+                                               @RequestHeader("Authorization") String bearerToken,
+                                               BindingResult bindingResult) {
+        //Handle the Errors of validation
+        if (bindingResult.hasErrors()) {
+            List<String> errors = bindingResult.getAllErrors().stream().map(ObjectError::getDefaultMessage)
+                    .collect(Collectors.toList());
+            return ResponseEntity.badRequest().body(new ErrorResponse(errors));
+        }
+
         try {
             String token = tokenService.extractToken(bearerToken);
             UserTokenData userTokenData = tokenService.decodeUserToken(token);
