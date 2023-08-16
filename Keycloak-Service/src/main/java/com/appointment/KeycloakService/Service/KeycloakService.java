@@ -7,6 +7,8 @@ import com.appointment.KeycloakService.Response.TokenResponse;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.net.HttpHeaders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -16,12 +18,14 @@ import reactor.core.publisher.Mono;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
 public class KeycloakService {
 
     private final WebClient.Builder webClientBuilder;
+    private final Logger logger = LoggerFactory.getLogger(KeycloakService.class);
 
     @Autowired
     public KeycloakService(WebClient.Builder webClientBuilder) {
@@ -219,5 +223,17 @@ public class KeycloakService {
                 .bodyToMono(Void.class);
 
         response.block();
+    }
+
+    public Mono<Map> getUserInfo(String bearerToken) {
+        return webClientBuilder.baseUrl("http://localhost:8081/realms/Appointment")
+                .defaultHeader(HttpHeaders.AUTHORIZATION, bearerToken)
+                .build()
+                .get()
+                .uri("/protocol/openid-connect/userinfo")
+                .retrieve()
+                .bodyToMono(Map.class)
+                .doOnNext(userInfo -> logger.info("User Info: {}", userInfo))
+                .doOnError(error -> logger.error("Error fetching user info: {}", error.getMessage()));
     }
 }

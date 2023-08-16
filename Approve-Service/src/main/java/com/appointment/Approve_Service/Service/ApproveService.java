@@ -1,7 +1,6 @@
 package com.appointment.Approve_Service.Service;
 
 
-import com.appoinment.DoctorService.Entity.Doctors;
 import com.appointment.AppointmentService.Entity.Appointment;
 import com.appointment.Approve_Service.Entity.Approve;
 import com.appointment.Approve_Service.Exception.ApprovalException;
@@ -26,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -84,24 +84,32 @@ public class ApproveService {
                        .block();
 
                //Get the data from doctor service
-               Doctors doctors = webClientBuilder.build()
+               Doctor doctor = webClientBuilder.build()
                        .get()
-                       .uri("http://Doctor-Service/api/doctor/getDoctorById/{doctorId}", appointment.getDoctorId())
+                       .uri("http://Doctor-Service/api/doctor/getDoctorById/{sub}", appointment.getDoctorId())
                        .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                        .retrieve()
-                       .bodyToMono(Doctors.class)
+                       .bodyToMono(Doctor.class)
                        .block();
 
-               if (doctors != null) {
-                   ApproveData approveData = new ApproveData();
-                   approveData.setAppointmentReason(appointment.getAppointmentReason());
-                   approveData.setLocation(doctors.getLocation());
-                   approveData.setDoctorName(doctors.getDoctorName());
-                   approveData.setTransactionId(appointment.getTransactionId());
-                   approveData.setTimeField(appointment.getTimeField());
-                   approveData.setDateField(appointment.getDateField());
-                   approveData.setAppointmentType(appointment.getAppointmentType());
-                   approveData.setPatientEmail(appointment.getPatientEmail());
+
+               if (doctor != null) {
+
+                   Map<String, Object> doctorAttributes = doctor.getAttributes();
+                   Object locationValue = doctorAttributes.get("clinicAddress");
+                   String Address = locationValue.toString();
+                   String clinicAddress = Address.replaceAll("[\\[\\]]", "");
+
+                   ApproveData approveData = ApproveData.builder()
+                   .appointmentReason(appointment.getAppointmentReason())
+                   .location(clinicAddress)
+                   .doctorName(doctor.getFullName())
+                   .transactionId(appointment.getTransactionId())
+                   .timeField(appointment.getTimeField())
+                   .dateField(appointment.getDateField())
+                   .appointmentType(appointment.getAppointmentType())
+                   .patientEmail(appointment.getPatientEmail())
+                   .build();
 
                    sendMessageToTopicForApproved(approveData,userTokenData);
                }
@@ -110,7 +118,7 @@ public class ApproveService {
                throw new IllegalArgumentException("The appointment object is null.");
            }
 
-           return new MessageResponse("Appointment Approved Successfully");
+           return new MessageResponse("Appointment Approved Successfully!");
        } catch (WebClientResponseException.NotFound ex) {
            // Parse the error response to get the message
            String responseBody = ex.getResponseBodyAsString();
@@ -196,12 +204,12 @@ public class ApproveService {
                         .block();
 
                 //Get the data from doctor service
-                Doctors doctors = webClientBuilder.build()
+                Doctor doctors = webClientBuilder.build()
                         .get()
                         .uri("http://Doctor-Service/api/doctor/getDoctorById/{doctorId}", appointment.getDoctorId())
                         .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                         .retrieve()
-                        .bodyToMono(Doctors.class)
+                        .bodyToMono(Doctor.class)
                         .block();
 
                 if (doctors != null) {
@@ -209,6 +217,7 @@ public class ApproveService {
                     disapproveData.setTransactionId(appointment.getTransactionId());
                     disapproveData.setDisapproveReason(disapproveRequest.getDisapproveReason());
                     disapproveData.setPatientEmail(appointment.getPatientEmail());
+
                     sendMessageToTopicForDisApproved(disapproveData,userTokenData);
                 }
             } else {
@@ -278,7 +287,7 @@ public class ApproveService {
     }
 
     //FindAllApprovedRequestOfDoctor
-    public List<Approve> getAllApproveAppointmentByDoctorId(Long doctorId){
+    public List<Approve> getAllApproveAppointmentByDoctorId(String doctorId){
         List<Approve> approveList = approveRepository.findByDoctorIdAndAppointmentStatus(doctorId,"Approved");
         if (approveList.isEmpty()) {
             throw new ApproveNotFoundException("Doctor with ID " + doctorId + " no approved data.");
@@ -287,7 +296,7 @@ public class ApproveService {
     }
 
     //FindAllDisapprovedRequestOfDoctor
-    public List<Approve> getAllDisapproveAppointmentByDoctorId(Long doctorId){
+    public List<Approve> getAllDisapproveAppointmentByDoctorId(String doctorId){
         List<Approve> disapproveList = approveRepository.findByDoctorIdAndAppointmentStatus(doctorId,"Disapproved");
         if (disapproveList.isEmpty()) {
             throw new ApproveNotFoundException("Doctor with ID " + doctorId + " no disapproved data.");
@@ -299,6 +308,12 @@ public class ApproveService {
     public Approve getApproveById(Long approveId) {
         Optional<Approve> approveOptional = approveRepository.findById(approveId);
         return approveOptional.orElseThrow(() -> new ApproveNotFoundException("Approve with ID " + approveId + " not found."));
+    }
+
+    //FindByTransactionId
+    public Approve getApproveByTransactionId(String transactionId){
+        Optional<Approve> approveOptional = approveRepository.findByTransactionId(transactionId);
+        return approveOptional.orElseThrow(() -> new ApproveNotFoundException("Approve with Transaction ID " + transactionId + " not found."));
     }
 
 

@@ -1,6 +1,7 @@
 package com.appointment.AppointmentService.Service;
 
-import com.appoinment.DoctorService.Entity.Doctors;
+
+import com.appoinment.DoctorService.Request.Doctor;
 import com.appointment.AppointmentService.Entity.Appointment;
 import com.appointment.AppointmentService.Exception.*;
 import com.appointment.AppointmentService.Repository.AppointmentRepository;
@@ -10,7 +11,6 @@ import com.appointment.AppointmentService.Request.AppointmentRequest;
 import com.appointment.AppointmentService.Request.UserTokenData;
 import com.appointment.AppointmentService.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.net.HttpHeaders;
@@ -25,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -49,50 +50,47 @@ public class AppointmentService {
     @CircuitBreaker(name = "addAppointment", fallbackMethod = "AppointmentMethodFallBack")
     public MessageResponse createAppointment(AppointmentRequest appointmentRequest,String bearerToken,UserTokenData userTokenData) throws JsonProcessingException {
         try {
-            Doctors doctor = webClientBuilder.build()
+            Doctor doctor = webClientBuilder.build()
                     .get()
                     .uri("http://Doctor-Service/api/doctor/getDoctorById/{doctorId}", appointmentRequest.getDoctorId())
                     .header(HttpHeaders.AUTHORIZATION, bearerToken) // Add Authorization header
                     .retrieve()
-                    .bodyToMono(Doctors.class)
+                    .bodyToMono(Doctor.class)
                     .block();
 
-            if (doctor == null) {
-                throw new DoctorNotFoundException("Doctor not found.");
-            }
+            //Get the data from the attributes from keycloak
+            assert doctor != null;
+            Map<String, Object> doctorAttributes = doctor.getAttributes();
+            Object locationValue = doctorAttributes.get("clinicAddress");
+            String Address = locationValue.toString();
+            String clinicAddress = Address.replaceAll("[\\[\\]]", "");
 
-            List<String> contactInformation = doctor.getContactInformation();
-            String doctorEmail = contactInformation.get(0);
+            Appointment appointment = Appointment.builder()
+                    .doctorEmail(doctor.getEmail())
+                    .patientEmail(userTokenData.getEmail())
+                    .doctorName(doctor.getFullName())
+                    .location(clinicAddress)
+                    .appointmentReason(appointmentRequest.getAppointmentReason())
+                    .transactionId(appointmentRequest.getTransactionId())
+                    .appointmentType(appointmentRequest.getAppointmentType())
+                    .appointmentStatus("Pending")
+                    .doctorId(appointmentRequest.getDoctorId())
+                    .patientId(userTokenData.getSub())
+                    .dateField(appointmentRequest.getDateField())
+                    .timeField(appointmentRequest.getTimeField())
+                    .build();
 
-            List<String> doctorWorkingHours = doctor.getWorkingHours();
+            AppointmentData appointmentData = AppointmentData.builder()
+                    .appointmentStatus("Pending")
+                    .doctorEmail(doctor.getEmail())
+                    .doctorName(doctor.getFullName())
+                    .appointmentReason(appointmentRequest.getAppointmentReason())
+                    .appointmentType(appointmentRequest.getAppointmentType())
+                    .transactionId(appointmentRequest.getTransactionId())
+                    .dateField(appointmentRequest.getDateField())
+                    .timeField(appointmentRequest.getTimeField())
+                    .build();
 
-            if (!doctorWorkingHours.contains(appointmentRequest.getTimeField())) {
-                throw new AppointmentHoursMismatchException("Appointment time does not match doctor's working hours.");
-            }
-
-            Appointment appointment = new Appointment();
-            appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
-            appointment.setTransactionId(appointmentRequest.getTransactionId());
-            appointment.setDoctorName(doctor.getDoctorName());
-            appointment.setLocation(doctor.getLocation());
-            appointment.setDoctorEmail(doctorEmail);
-            appointment.setAppointmentType(appointmentRequest.getAppointmentType());
-            appointment.setAppointmentStatus("Pending");
-            appointment.setDoctorId(appointmentRequest.getDoctorId());
-            appointment.setPatientId(userTokenData.getSub());
-            appointment.setDateField(appointmentRequest.getDateField());
-            appointment.setTimeField(appointmentRequest.getTimeField());
-            appointment.setPatientEmail(userTokenData.getEmail());
-
-            AppointmentData appointmentData = new AppointmentData();
-            appointmentData.setAppointmentStatus(appointmentRequest.getAppointmentStatus());
-            appointmentData.setAppointmentReason(appointmentRequest.getAppointmentReason());
-            appointmentData.setAppointmentType(appointmentRequest.getAppointmentType());
-            appointmentData.setTransactionId(appointmentRequest.getTransactionId());
-            appointmentData.setDoctorName(doctor.getDoctorName());
-            appointmentData.setDoctorEmail(doctor.getContactInformation().toString());
-            appointmentData.setDateField(appointmentRequest.getDateField());
-            appointmentData.setTimeField(appointmentRequest.getTimeField());
             // Send message to topic
             sendMessageToTopic(appointmentData, userTokenData);
 
@@ -100,13 +98,7 @@ public class AppointmentService {
 
             return new MessageResponse("Appointment Successfully!");
         } catch (WebClientResponseException.NotFound ex) {
-            // Parse the error response to get the message
-            String responseBody = ex.getResponseBodyAsString();
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(responseBody);
-
-            // Rethrow the AppointmentNotFoundException from the ApprovalService
-            throw new AppointmentNotFoundException(jsonNode.get("message").asText());
+            throw new DoctorNotFoundException("Doctor not found in the Doctor service.");
         } catch (WebClientResponseException.ServiceUnavailable ex) {
             throw new WebClientException("Error occurred while calling the external service: Service Unavailable from other Service");
         } catch (AppointmentHoursMismatchException e) {
@@ -170,7 +162,7 @@ public class AppointmentService {
     }
 
     //FindByDoctorId
-    public List<Appointment> getAppointmentsByDoctorId(Long doctorId) {
+    public List<Appointment> getAppointmentsByDoctorId(String doctorId) {
         List<Appointment> appointmentList = appointmentRepository.findByDoctorId(doctorId);
         if (appointmentList.isEmpty()) {
             throw new AppointmentNotFoundException("Doctor with ID " + doctorId + " no appointment data.");
@@ -196,20 +188,14 @@ public class AppointmentService {
 
     //Update the appointment
     public void updateAppointment(long appointmentId, AppointmentRequest appointmentRequest) {
-        Optional<Appointment> optionalAppointment = appointmentRepository.findById(appointmentId);
-        if (optionalAppointment.isPresent()) {
-            Appointment appointment = optionalAppointment.get();
-            // Update the appointment with the new values from the appointment request
-            appointment.setDoctorId(appointmentRequest.getDoctorId());
-            appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
-            appointment.setAppointmentType(appointmentRequest.getAppointmentType());
-            appointment.setAppointmentStatus(appointmentRequest.getAppointmentStatus());
-            appointment.setTransactionId(appointmentRequest.getTransactionId());
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found."));
 
-            // Save the updated appointment
-            appointmentRepository.save(appointment);
-        } else {
-            throw new AppointmentNotFoundException("Appointment with ID " + appointmentId + " not found.");
-        }
+        appointment.setDoctorId(appointmentRequest.getDoctorId());
+        appointment.setAppointmentReason(appointmentRequest.getAppointmentReason());
+        appointment.setAppointmentType(appointmentRequest.getAppointmentType());
+        appointment.setTransactionId(appointmentRequest.getTransactionId());
+
+        appointmentRepository.save(appointment);
     }
 }

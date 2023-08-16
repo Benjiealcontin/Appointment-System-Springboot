@@ -9,4 +9,5 @@ public class CancelDataForNotification {
     private String transactionId;
     private String doctorEmail;
     private String cancelReason;
+    private String patientEmail;
 }

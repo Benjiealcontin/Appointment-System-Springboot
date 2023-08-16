@@ -92,9 +92,23 @@ public class ApproveController {
         }
     }
 
+
+    //FindByTransactionId
+    @GetMapping("/findByTransactionId/{transactionId}")
+    public ResponseEntity<?> getApproveByTransactionId(@PathVariable String transactionId){
+        try {
+            Approve approve = approveService.getApproveByTransactionId(transactionId);
+            return ResponseEntity.ok().body(approve);
+        } catch (ApproveNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
     //FindAllApprovedRequestOfDoctor
     @GetMapping("/approved/{doctorId}")
-    public ResponseEntity<?> getAllApproveOfDoctor(@PathVariable Long doctorId) {
+    public ResponseEntity<?> getAllApproveOfDoctor(@PathVariable String doctorId) {
         try {
             List<Approve> approveList = approveService.getAllApproveAppointmentByDoctorId(doctorId);
             return ResponseEntity.ok(approveList);
@@ -107,7 +121,7 @@ public class ApproveController {
 
     //FindAllDisapprovedRequestOfDoctor
     @GetMapping("/disapproved/{doctorId}")
-    public ResponseEntity<?> getAllDisapproveOfDoctor(@PathVariable Long doctorId) {
+    public ResponseEntity<?> getAllDisapproveOfDoctor(@PathVariable String doctorId) {
         try {
             List<Approve> disapproveList = approveService.getAllDisapproveAppointmentByDoctorId(doctorId);
             return ResponseEntity.ok(disapproveList);

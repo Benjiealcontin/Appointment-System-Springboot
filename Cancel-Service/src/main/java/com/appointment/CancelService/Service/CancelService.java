@@ -4,10 +4,12 @@ import com.appointment.AppointmentService.Entity.Appointment;
 import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
 import com.appointment.CancelService.Entity.Cancel;
 import com.appointment.CancelService.Exception.CancelException;
+import com.appointment.CancelService.Exception.CancelNotFoundException;
 import com.appointment.CancelService.Exception.WebClientException;
 import com.appointment.CancelService.Repository.CancelRepository;
 import com.appointment.CancelService.Request.CancelDataForNotification;
 import com.appointment.CancelService.Request.CancelRequest;
+import com.appointment.CancelService.Request.UpdateCancelDetails;
 import com.appointment.CancelService.Request.UserTokenData;
 import com.appointment.CancelService.Response.MessageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -81,6 +83,7 @@ public class CancelService {
                     CancelDataForNotification cancelData = new CancelDataForNotification();
                     cancelData.setTransactionId(appointment.getTransactionId());
                     cancelData.setDoctorEmail(appointment.getDoctorEmail());
+                    cancelData.setPatientEmail(appointment.getPatientEmail());
                     cancelData.setCancelReason(cancelRequest.getCancelReason());
 
                     sendMessageToTopic(cancelData,userTokenData);
@@ -139,6 +142,7 @@ public class CancelService {
         log.warn("Circuit breaker fallback: Unable to send message to Kafka topic. Error: {}", t.getMessage());
 
     }
+
     //FindAll
     public List<Cancel> getAllCancelAppointments() {
         List<Cancel> approves = cancelRepository.findAll();
@@ -148,7 +152,17 @@ public class CancelService {
         return approves;
     }
 
-    //GetByTransaction
+    //FindAll the Cancel Request of Patient
+    public List<Cancel> getAllCancelOfPatients(String patientId) {
+        List<Cancel> cancels = cancelRepository.findByPatientId(patientId);
+        if (cancels.isEmpty()) {
+            throw new CancelException("No data of Cancel with Patient ID " + patientId);
+        }
+        return cancels;
+    }
+
+
+        //GetByTransaction
     public Cancel getCancelByTransactionId(String transactionId) {
         Optional<Cancel> cancelOptional = cancelRepository.findByTransactionId(transactionId);
         return cancelOptional.orElseThrow(() -> new CancelException("Cancel with TransactionID " + transactionId + " not found."));
@@ -158,6 +172,30 @@ public class CancelService {
     public Cancel getCancelById(Long cancelId) {
         Optional<Cancel> cancelOptional = cancelRepository.findById(cancelId);
         return cancelOptional.orElseThrow(() -> new CancelException("Cancel with Id " + cancelId + " not found."));
+    }
+
+    //Delete Cancel
+    public void deleteCancelById(Long cancelId) {
+        if (!cancelRepository.existsById(cancelId)) {
+            throw new CancelNotFoundException("Approve with ID " + cancelId + " not found.");
+        }
+        cancelRepository.deleteById(cancelId);
+    }
+
+    //Update Cancel details
+    public void updateCancelById(Long cancelId, UpdateCancelDetails updateDetails) {
+        Optional<Cancel> optionalCancel = cancelRepository.findById(cancelId);
+        if (optionalCancel.isPresent()) {
+            Cancel cancel = optionalCancel.get();
+            cancel.setAppointmentReason(updateDetails.getAppointmentReason());
+            cancel.setAppointmentType(updateDetails.getAppointmentType());
+            cancel.setDateField(updateDetails.getDateField());
+            cancel.setTimeField(updateDetails.getTimeField());
+
+            cancelRepository.save(cancel);
+        } else {
+            throw new CancelNotFoundException("Cancel with ID " + cancelId + " not found.");
+        }
     }
 
 }

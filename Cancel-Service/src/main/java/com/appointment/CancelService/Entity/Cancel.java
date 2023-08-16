@@ -19,7 +19,7 @@ public class Cancel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    private long doctorId;
+    private String doctorId;
     private String transactionId;
     private String patientId;
     private String appointmentReason;

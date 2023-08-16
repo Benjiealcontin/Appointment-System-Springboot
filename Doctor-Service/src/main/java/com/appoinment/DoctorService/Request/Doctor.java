@@ -33,4 +33,9 @@ public class Doctor {
 
     @NotEmpty(message = "At least one credential must be specified")
     private List<CredentialDTO> credentials;
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
 }

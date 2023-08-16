@@ -85,6 +85,7 @@ opacity: 0.8;
     <p><strong>Gender:</strong> ${gender}</p>
     <p><strong>Email:</strong> ${patientEmail}</p>
     <p><strong>Phone:</strong> ${phoneNumber}</p>
+    <p><strong>Address:</strong> ${address}</p>
 	<br>
 	<br>
 	<br>

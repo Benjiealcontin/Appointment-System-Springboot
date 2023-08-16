@@ -29,7 +29,7 @@ public class CancelEmailSenderService {
     }
 
 
-    public void sendCancelConfirmationEmail(String doctorEmail, Map<String, Object> model) throws MessagingException, TemplateException, IOException {
+    public void sendCancelConfirmationEmail(String doctorEmail, String patientEmail, Map<String, Object> model) throws MessagingException, TemplateException, IOException {
 
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
@@ -43,7 +43,15 @@ public class CancelEmailSenderService {
         helper.setSubject("Appointment Notification");
         helper.setFrom("benjiealcontin23@gmail.com");
         mailSender.send(message);
+        System.out.println("Mail Sent for Doctor is successfully");
+
+        helper.setTo(patientEmail);
+        helper.setText(doctorHtml, true);
+        helper.setSubject("Appointment Notification");
+        helper.setFrom("benjiealcontin23@gmail.com");
+        mailSender.send(message);
         System.out.println("Mail Sent for Patient is successfully");
+
 
     }
 }

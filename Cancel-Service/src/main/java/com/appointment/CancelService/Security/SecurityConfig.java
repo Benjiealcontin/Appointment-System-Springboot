@@ -25,10 +25,13 @@ public class SecurityConfig {
         http.
                 authorizeHttpRequests(auth ->
                 {
-                    auth.requestMatchers(HttpMethod.POST, "/api/cancel/*").hasAnyRole(DOCTOR);
-                    auth.requestMatchers(HttpMethod.POST, "/api/cancel/getAllCancel",
-                            "/getByTransactionId/*","/getById/*").hasAnyRole(ADMIN,DOCTOR,USER);
-                    auth.requestMatchers(HttpMethod.GET, "/actuator/*").hasAnyRole(ADMIN,DOCTOR,USER);
+                    auth.requestMatchers(HttpMethod.POST, "/api/cancel/*").hasAnyRole(DOCTOR,USER);
+                    auth.requestMatchers(HttpMethod.GET, "/api/cancel/getAllCancel",
+                            "/getByTransactionId/*","/getById/*").hasRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.GET, "/actuator/*").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/cancel/getAllCancelOfPatient").hasRole(USER);
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/cancel/delete/*").hasAnyRole(ADMIN);
+                    auth.requestMatchers(HttpMethod.PUT, "/api/cancel/update/*").hasAnyRole(ADMIN,USER);
                     auth.anyRequest().authenticated();
                 });
 

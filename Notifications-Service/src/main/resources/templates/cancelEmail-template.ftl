@@ -76,7 +76,6 @@ opacity: 0.8;
     <p>Cancel Reason: ${cancelReason}</p>
     <br>
     <br>
-    <h2>Sorry the Patient is cancelled the Appointment Request!</h2>
   </div>
 </body>
 </script>

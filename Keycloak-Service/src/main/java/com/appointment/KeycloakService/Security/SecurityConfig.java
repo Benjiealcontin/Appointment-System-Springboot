@@ -28,8 +28,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST,"api/keycloak/get-token","api/keycloak/confirmation").permitAll()
                         .requestMatchers(HttpMethod.POST,"api/keycloak/AddDoctor","api/keycloak/AddPatient").hasRole(ADMIN)
-                        .requestMatchers(HttpMethod.GET,"api/keycloak/getPatient/*","api/keycloak/getDoctor/*").hasAnyRole(ADMIN,DOCTOR)
-                        .requestMatchers(HttpMethod.GET,"api/keycloak/getAllPatients","api/keycloak/getAllDoctor").hasAnyRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET,"api/keycloak/getPatient/*","api/keycloak/getDoctor/*").hasAnyRole(ADMIN,DOCTOR,USER)
+                        .requestMatchers(HttpMethod.GET,"api/keycloak/getAllPatients","api/keycloak/getAllDoctor").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.GET,"api/keycloak/getInfo").hasRole(USER)
+                        .requestMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE,"api/keycloak/deletePatient","api/keycloak/deleteDoctor").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.PUT,"api/keycloak/update-doctor/*","api/keycloak/update-patient/*").hasRole(ADMIN)
                         .anyRequest().authenticated()

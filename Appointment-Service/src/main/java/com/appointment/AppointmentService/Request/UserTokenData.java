@@ -12,12 +12,21 @@ public class UserTokenData {
     private String familyName;
     private String phoneNumber;
     private String email;
+    private int age;
     private String sub;
     private String gender;
-    private int age;
+    private String streetAddress;
+    private String locality;
+    private String region;
+    private String postalCode;
+    private String country;
 
     public String getFullName() {
         return givenName + " " + familyName;
+    }
+
+    public String getAddress() {
+        return streetAddress + ", " + locality + ", " + region + ", " + postalCode + ", " + country;
     }
 
 }

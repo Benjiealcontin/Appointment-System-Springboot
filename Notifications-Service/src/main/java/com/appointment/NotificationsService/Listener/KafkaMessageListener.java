@@ -60,9 +60,7 @@ public class KafkaMessageListener {
             String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
             String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
             String doctorContactInfo = jsonNode.get("appointmentData").get("doctorEmail").asText();
-            doctorContactInfo = doctorContactInfo.replaceAll("[\\[\\]]", ""); // Removes both "[" and "]"
-            String[] emailArray = doctorContactInfo.split(", ");
-            String doctorEmail = emailArray[0];
+            String doctorEmail = jsonNode.get("appointmentData").get("doctorEmail").asText();
             String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
             JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
@@ -77,6 +75,7 @@ public class KafkaMessageListener {
             String gender = jsonNode.get("userTokenData").get("gender").asText();
             String patientEmail = jsonNode.get("userTokenData").get("email").asText();
             String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
+            String address = jsonNode.get("userTokenData").get("address").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -91,6 +90,7 @@ public class KafkaMessageListener {
             appointmentModel.put("doctorEmail",doctorEmail);
             appointmentModel.put("gender",gender);
             appointmentModel.put("phoneNumber",phoneNumber);
+            appointmentModel.put("address",address);
 
             appointmentEmailSenderService.sendAppointmentConfirmationEmail(patientEmail, doctorEmail, appointmentModel);
 
@@ -117,9 +117,7 @@ public class KafkaMessageListener {
             String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
             String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
             String doctorContactInfo = jsonNode.get("appointmentData").get("doctorEmail").asText();
-            doctorContactInfo = doctorContactInfo.replaceAll("[\\[\\]]", ""); // Removes both "[" and "]"
-            String[] emailArray = doctorContactInfo.split(", ");
-            String doctorEmail = emailArray[0];
+            String doctorEmail = jsonNode.get("appointmentData").get("doctorEmail").asText();
             String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
             JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
@@ -134,6 +132,7 @@ public class KafkaMessageListener {
             String gender = jsonNode.get("userTokenData").get("gender").asText();
             String patientEmail = jsonNode.get("userTokenData").get("email").asText();
             String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
+            String address = jsonNode.get("userTokenData").get("address").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -148,6 +147,7 @@ public class KafkaMessageListener {
             appointmentModel.put("doctorEmail",doctorEmail);
             appointmentModel.put("gender",gender);
             appointmentModel.put("phoneNumber",phoneNumber);
+            appointmentModel.put("address",address);
 
             appointmentEmailSenderService.sendAppointmentConfirmationEmail(patientEmail, doctorEmail, appointmentModel);
 
@@ -174,9 +174,10 @@ public class KafkaMessageListener {
             String appointmentType   = jsonNode.get("appointmentData").get("appointmentType").asText();
             String timeField   = jsonNode.get("appointmentData").get("timeField").asText();
             String doctorContactInfo = jsonNode.get("appointmentData").get("doctorEmail").asText();
-            doctorContactInfo = doctorContactInfo.replaceAll("[\\[\\]]", ""); // Removes both "[" and "]"
-            String[] emailArray = doctorContactInfo.split(", ");
-            String doctorEmail = emailArray[0];
+            String doctorEmail = jsonNode.get("appointmentData").get("doctorEmail").asText();
+//            doctorContactInfo = doctorContactInfo.replaceAll("[\\[\\]]", ""); // Removes both "[" and "]"
+//            String[] emailArray = doctorContactInfo.split(", ");
+//            String doctorEmail = emailArray[0];
             String doctorName    = jsonNode.get("appointmentData").get("doctorName").asText();
             JsonNode dateFieldNode = jsonNode.get("appointmentData").get("dateField");
             LocalDate dateField = LocalDate.of(
@@ -191,6 +192,7 @@ public class KafkaMessageListener {
             String gender = jsonNode.get("userTokenData").get("gender").asText();
             String patientEmail = jsonNode.get("userTokenData").get("email").asText();
             String phoneNumber = jsonNode.get("userTokenData").get("phoneNumber").asText();
+            String address = jsonNode.get("userTokenData").get("address").asText();
 
             Map<String, Object> appointmentModel = new HashMap<>();
             appointmentModel.put("doctorName",doctorName);
@@ -205,6 +207,7 @@ public class KafkaMessageListener {
             appointmentModel.put("doctorEmail",doctorEmail);
             appointmentModel.put("gender",gender);
             appointmentModel.put("phoneNumber",phoneNumber);
+            appointmentModel.put("address",address);
 
             appointmentEmailSenderService.sendAppointmentConfirmationEmail(patientEmail, doctorEmail, appointmentModel);
 
@@ -448,13 +451,14 @@ public class KafkaMessageListener {
             String transactionId = jsonNode.get("transactionId").asText();
             String cancelReason  = jsonNode.get("cancelReason").asText();
             String doctorEmail = jsonNode.get("doctorEmail").asText();
+            String patientEmail = jsonNode.get("patientEmail").asText();
 
             Map<String, Object> cancelModel = new HashMap<>();
             cancelModel.put("cancelReason",cancelReason);
             cancelModel.put("transactionId",transactionId);
 
 
-            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, cancelModel);
+            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, patientEmail, cancelModel);
 
             log.info("Cancel Consumer1 received the message with key=[{}]from partition=[{}] with offset=[{}]",
                     key, partition, offset);
@@ -477,13 +481,14 @@ public class KafkaMessageListener {
             String transactionId = jsonNode.get("transactionId").asText();
             String cancelReason  = jsonNode.get("cancelReason").asText();
             String doctorEmail = jsonNode.get("doctorEmail").asText();
+            String patientEmail = jsonNode.get("patientEmail").asText();
 
             Map<String, Object> cancelModel = new HashMap<>();
             cancelModel.put("cancelReason",cancelReason);
             cancelModel.put("transactionId",transactionId);
 
 
-            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, cancelModel);
+            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, patientEmail, cancelModel);
 
             log.info("Cancel Consumer2 received the message with key=[{}]from partition=[{}] with offset=[{}]",
                     key, partition, offset);
@@ -506,13 +511,14 @@ public class KafkaMessageListener {
             String transactionId = jsonNode.get("transactionId").asText();
             String cancelReason  = jsonNode.get("cancelReason").asText();
             String doctorEmail = jsonNode.get("doctorEmail").asText();
+            String patientEmail = jsonNode.get("patientEmail").asText();
 
             Map<String, Object> cancelModel = new HashMap<>();
             cancelModel.put("cancelReason",cancelReason);
             cancelModel.put("transactionId",transactionId);
 
 
-            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, cancelModel);
+            cancelEmailSenderService.sendCancelConfirmationEmail(doctorEmail, patientEmail, cancelModel);
 
             log.info("Cancel Consumer3 received the message with key=[{}]from partition=[{}] with offset=[{}]",
                     key, partition, offset);

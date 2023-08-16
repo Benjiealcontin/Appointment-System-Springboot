@@ -18,7 +18,6 @@ public class SecurityConfig {
 
     public static final String ADMIN = "client_admin";
     public static final String USER = "client_user";
-
     public static final String DOCTOR = "client_doctor";
 
     @Bean
@@ -26,7 +25,7 @@ public class SecurityConfig {
         http.
                 authorizeHttpRequests(auth ->
                 {
-                    auth.requestMatchers(HttpMethod.GET, "/actuator/*").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/actuator/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/api/doctor/getAllDoctor"
                     ,"/api/doctor/getDoctorById/*","/api/doctor/findByName/*","/api/doctor/findBySpecialization/*").hasAnyRole(ADMIN,USER,DOCTOR);
                     auth.requestMatchers(HttpMethod.POST, "/api/doctor/addDoctor").hasRole(ADMIN);

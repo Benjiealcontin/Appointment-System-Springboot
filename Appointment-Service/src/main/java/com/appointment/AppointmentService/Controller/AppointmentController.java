@@ -2,14 +2,12 @@ package com.appointment.AppointmentService.Controller;
 
 import com.appoinment.DoctorService.Response.ErrorResponse;
 import com.appointment.AppointmentService.Entity.Appointment;
-import com.appointment.AppointmentService.Exception.AppointmentHoursMismatchException;
-import com.appointment.AppointmentService.Exception.AppointmentNotFoundException;
-import com.appointment.AppointmentService.Exception.InvalidTokenException;
-import com.appointment.AppointmentService.Exception.WebClientException;
+import com.appointment.AppointmentService.Exception.*;
 import com.appointment.AppointmentService.Request.AppointmentRequest;
 import com.appointment.AppointmentService.Request.UserTokenData;
 import com.appointment.AppointmentService.Response.MessageResponse;
 import com.appointment.AppointmentService.Service.*;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -21,10 +19,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("api/appointment")
 public class AppointmentController {
-
-
     private final AppointmentService appointmentService;
-
 
     private final TokenDecodeService tokenService;
 
@@ -37,7 +32,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<?> createAppointment(@RequestBody AppointmentRequest appointmentRequest,
+    public ResponseEntity<?> createAppointment(@Valid @RequestBody AppointmentRequest appointmentRequest,
                                                @RequestHeader("Authorization") String bearerToken,
                                                BindingResult bindingResult) {
         //Handle the Errors of validation
@@ -48,8 +43,9 @@ public class AppointmentController {
         }
 
         try {
+
             String token = tokenService.extractToken(bearerToken);
-            UserTokenData userTokenData = tokenService.decodeUserToken(token);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token,bearerToken);
 
             boolean isPast = DateUtils.isDateInPast(appointmentRequest.getDateField());
             if (isPast) {
@@ -66,7 +62,7 @@ public class AppointmentController {
                     return ResponseEntity.ok(appointmentService.createAppointment(appointmentRequest,bearerToken,userTokenData));
                 }
             }
-        } catch (AppointmentNotFoundException e) {
+        } catch (DoctorNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (AppointmentHoursMismatchException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
@@ -107,7 +103,7 @@ public class AppointmentController {
 
     //GetAllPendingAppointmentOfDoctorByDoctorId
     @GetMapping("/getByDoctorId/{doctorId}")
-    public ResponseEntity<?> getAppointmentsByDoctorId(@PathVariable Long doctorId) {
+    public ResponseEntity<?> getAppointmentsByDoctorId(@PathVariable String doctorId) {
         try {
             List<Appointment> appointmentList =  appointmentService.getAppointmentsByDoctorId(doctorId);
             return ResponseEntity.ok(appointmentList);

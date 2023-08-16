@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/keycloak")
@@ -109,6 +110,12 @@ public class KeycloakController {
     public Mono<String> getToken(@RequestBody FormRequest formRequest) {
         return keycloakService.getToken(formRequest)
                 .onErrorResume(KeycloakException.class, ex -> Mono.just(ex.getMessage()));
+    }
+
+    //getInfo
+    @GetMapping("/getInfo")
+    public Mono<Map> getUserInfo(@RequestHeader("Authorization") String bearerToken) {
+        return keycloakService.getUserInfo(bearerToken);
     }
 
     //Update Doctor

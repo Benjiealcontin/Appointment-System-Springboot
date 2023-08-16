@@ -1,10 +1,10 @@
-package com.appointment.PatientService;
+package com.appointment.RescheduleService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class PatientServiceApplicationTests {
+class RescheduleServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

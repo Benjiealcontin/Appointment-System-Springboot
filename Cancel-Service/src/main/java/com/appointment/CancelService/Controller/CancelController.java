@@ -2,7 +2,9 @@ package com.appointment.CancelService.Controller;
 
 import com.appointment.CancelService.Entity.Cancel;
 import com.appointment.CancelService.Exception.CancelException;
+import com.appointment.CancelService.Exception.CancelNotFoundException;
 import com.appointment.CancelService.Request.CancelRequest;
+import com.appointment.CancelService.Request.UpdateCancelDetails;
 import com.appointment.CancelService.Request.UserTokenData;
 import com.appointment.CancelService.Response.MessageResponse;
 import com.appointment.CancelService.Service.CancelService;
@@ -55,6 +57,21 @@ public class CancelController {
         }
     }
 
+    //GetAllCancelOfPatient
+    @GetMapping("/getAllCancelOfPatient")
+    public ResponseEntity<?> getAllCancelOfPatient(@RequestHeader("Authorization")String bearerToken){
+        try{
+            String token = tokenService.extractToken(bearerToken);
+            UserTokenData userTokenData = tokenService.decodeUserToken(token);
+            List<Cancel> cancel = cancelService.getAllCancelOfPatients(userTokenData.getSub());
+            return ResponseEntity.ok(cancel);
+        } catch (CancelException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
     //FindByTransactionId
     @GetMapping("/getByTransactionId/{transactionId}")
     public ResponseEntity<?> getByTransactionId(@PathVariable String transactionId){
@@ -75,6 +92,32 @@ public class CancelController {
             Cancel cancel = cancelService.getCancelById(cancelId);
             return ResponseEntity.ok(cancel);
         } catch (CancelException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Delete Cancel
+    @DeleteMapping("/delete/{cancelId}")
+    public ResponseEntity<?> deleteCancelById(@PathVariable Long cancelId) {
+        try {
+            cancelService.deleteCancelById(cancelId);
+            return ResponseEntity.ok(new MessageResponse("Delete Successfully!"));
+        } catch (CancelNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    //Update Cancel details
+    @PutMapping("/update/{cancelId}")
+    public ResponseEntity<?> updateApprove(@PathVariable Long cancelId, @RequestBody UpdateCancelDetails updateDetails) {
+        try {
+            cancelService.updateCancelById(cancelId, updateDetails);
+            return ResponseEntity.ok(new MessageResponse("Approve Details updated successfully."));
+        } catch (CancelNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred: " + e.getMessage());

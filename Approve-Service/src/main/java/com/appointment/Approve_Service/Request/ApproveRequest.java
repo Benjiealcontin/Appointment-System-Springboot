@@ -12,7 +12,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApproveRequest {
-    private long doctorId;
+    private String doctorId;
     private String patientId;
     private String appointmentReason;
     private String appointmentType;

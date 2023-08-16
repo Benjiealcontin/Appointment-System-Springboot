@@ -36,6 +36,12 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
     @Value("${jwt.auth.converter[1].resource-id}")
     private String resourceId2;
 
+    @Value("${jwt.auth.converter[2].principle-attribute}")
+    private String principleAttribute3;
+
+    @Value("${jwt.auth.converter[2].resource-id}")
+    private String resourceId3;
+
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         Collection<GrantedAuthority> authorities = Stream.concat(
@@ -56,6 +62,8 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
             claimName = principleAttribute1;
         } else if (principleAttribute2 != null) {
             claimName = principleAttribute2;
+        } else if (principleAttribute3 != null) {
+            claimName = principleAttribute3;
         }
         return jwt.getClaim(claimName);
     }
@@ -71,14 +79,16 @@ public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationTo
 
         resourceAccess = jwt.getClaim("resource_access");
 
-        if (resourceAccess.get(resourceId1) == null && resourceAccess.get(resourceId2) == null) {
+        if (resourceAccess.get(resourceId1) == null && resourceAccess.get(resourceId2) == null && resourceAccess.get(resourceId3) == null) {
             return Set.of();
         }
 
         if (resourceAccess.get(resourceId1) != null) {
             resource = (Map<String, Object>) resourceAccess.get(resourceId1);
-        } else {
+        } else if (resourceAccess.get(resourceId2) != null) {
             resource = (Map<String, Object>) resourceAccess.get(resourceId2);
+        } else {
+            resource = (Map<String, Object>) resourceAccess.get(resourceId3);
         }
 
         resourceRoles = (Collection<String>) resource.get("roles");
